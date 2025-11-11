@@ -86,7 +86,7 @@ export default function TitleDisplay({ sections = [], scrollIndex = 0 }) {
         )}
 
         {/* NEXT title - layer opaco (grigio) */}
-        {next && (
+        {next && p > 0 && (
           <div
             className="absolute left-0 top-0"
             style={{ ...nextStyleCommon, width: "100%", opacity: nextGrayOpacity }}
@@ -101,7 +101,7 @@ export default function TitleDisplay({ sections = [], scrollIndex = 0 }) {
         )}
 
         {/* NEXT title - layer colorato sopra, animato da opacità 0->1 */}
-        {next && (
+        {next && p > 0 && (
           <div
             className="absolute left-0 top-0"
             style={{ ...nextStyleCommon, width: "100%", opacity: nextColorOpacity }}
