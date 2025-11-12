@@ -202,6 +202,13 @@ const InteractiveContent = ({
     // Resetta prediction e select state
     setShowPredictions(false);
     setShowTop10(false);
+
+    // AGGIUNTO: Pulisci i valori precedenti dal localStorage
+    for (let i = 0; i < 24; i++) {
+      localStorage.removeItem(`mol-${i}`);
+      localStorage.removeItem(`mol-${i}-orange`);
+    }
+
     setTimeout(() => {
       setMolecules(getRandomMolecules(24));
       setIsGenerating(false);
