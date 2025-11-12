@@ -93,6 +93,7 @@ export default function TitleDisplay({
             {/* Sottotitolo del current */}
             <p
               className="text-2xl text-gray-300 font-light"
+              dangerouslySetInnerHTML={{ __html: current.subtitle }}
               style={{
                 margin: 0,
                 marginTop: "0.5rem",
@@ -101,7 +102,6 @@ export default function TitleDisplay({
                 willChange: "transform, opacity",
               }}
             >
-              {current.subtitle}
             </p>
           </div>
         )}
@@ -154,6 +154,7 @@ export default function TitleDisplay({
             {/* Sottotitolo entrante (semantico) */}
             <p
               className="text-2xl text-gray-300 font-light"
+              dangerouslySetInnerHTML={{ __html: next.subtitle }}
               style={{
                 margin: 0,
                 marginTop: "0.5rem",
@@ -162,7 +163,6 @@ export default function TitleDisplay({
                 willChange: "transform, opacity",
               }}
             >
-              {next.subtitle}
             </p>
           </div>
         )}

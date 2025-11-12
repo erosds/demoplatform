@@ -2,7 +2,7 @@ export const sectionsData = [
   {
     id: 0,
     title: 'overview',
-    subtitle: 'Imagine you want to discover new materials. You would start from existing ones and change their structure one at a time, testing each variation to see if it has the desired properties. This is slow and expensive. Now, imagine if you had a tool that could optimize the entire process, accelerating the discovery of new materials with desired properties. This is where AI comes in.',
+    subtitle: 'Imagine you want to discover <strong>new materials</strong>. You would start from existing ones and change their structure one at a time, testing each variation to see if it has the desired properties. This is slow and expensive. Now, imagine if you had a tool that could optimize the entire process, accelerating the discovery of new materials with desired properties. This is where AI comes in.',
     gradient: 'from-purple-600 via-pink-600 to-red-600'
   },
   {

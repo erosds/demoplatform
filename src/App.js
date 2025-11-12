@@ -76,12 +76,12 @@ export default function App() {
     const duration = 1000; // durata in ms (1s)
     const startTime = performance.now();
 
-    const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3); // curva veloce → lenta
+    const easeOutQuint = (t) => 1 - Math.pow(1 - t, 5); // curva molto lenta alla fine
 
     const animate = (now) => {
       const elapsed = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      const eased = easeOutCubic(progress);
+      const eased = easeOutQuint(progress);
 
       container.scrollLeft = start + distance * eased;
 
@@ -130,8 +130,6 @@ export default function App() {
           ))}
         </div>
       </div>
-
-      
       {/* Interactive Content Layer */}
       <InteractiveContent
         activeIndex={activeIndex}
