@@ -49,7 +49,7 @@ const InteractiveContent = ({ activeIndex }) => {
       >
         {/* Pulsante Generate - appare da sinistra */}
         <div
-          className={`transition-all duration-700 ease-out pointer-events-auto ${
+          className={`transition-all duration-700 ease-out ${
             isGenerate
               ? "opacity-100 translate-x-0"
               : "opacity-0 -translate-x-20 pointer-events-none"
@@ -66,7 +66,7 @@ const InteractiveContent = ({ activeIndex }) => {
 
         {/* Griglia 5x5 - si sposta da destra a sinistra */}
         <div
-          className={`grid grid-cols-5 gap-3 transition-all duration-1000 ease-out pointer-events-auto ${
+          className={`grid grid-cols-5 gap-3 transition-all duration-1000 ease-out ${
             isPredict ? "order-first mr-auto" : "order-last ml-auto"
           }`}
           style={{
@@ -76,7 +76,7 @@ const InteractiveContent = ({ activeIndex }) => {
           {molecules.map((mol, idx) => (
             <div
               key={idx}
-              className="w-28 h-28 rounded-lg bg-gray-700 relative overflow-hidden flex items-center justify-center"
+              className="w-32 h-32 rounded-lg bg-gray-700 relative overflow-hidden flex items-center justify-center"
             >
               {/* Shimmer effect durante il caricamento */}
               {isGenerating && (
@@ -103,7 +103,7 @@ const InteractiveContent = ({ activeIndex }) => {
 
         {/* Pulsante Predict - appare da destra */}
         <div
-          className={`transition-all duration-700 ease-out pointer-events-auto ${
+          className={`transition-all duration-700 ease-out ${
             isPredict
               ? "opacity-100 translate-x-0"
               : "opacity-0 translate-x-20 pointer-events-none"

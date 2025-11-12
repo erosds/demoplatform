@@ -20,7 +20,7 @@ export default function TitleDisplay({
   // Parametri di animazione (modificabili)
   const enterOffsetVW = 60; // distanza iniziale del titolo entrante (vw)
   const exitDistanceVW = 60; // distanza a cui il current esce (vw)
-  const exitTrigger = 0.6; // quando inizia la fase di "exit"
+  const exitTrigger = 0.9; // quando inizia la fase di "exit"
   const colorSwitchStart = 0.1;
   const colorSwitchEnd = 0.95;
 
