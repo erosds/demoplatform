@@ -67,8 +67,27 @@ export default function App() {
   const scrollTo = (idx) => {
     const container = containerRef.current;
     if (!container) return;
-    const w = container.clientWidth || 1;
-    container.scrollTo({ left: idx * w, behavior: "smooth" });
+
+    const w = container.offsetWidth || 1;
+    const start = container.scrollLeft;
+    const end = idx * w;
+    const distance = end - start;
+    const duration = 1000; // durata in ms (1s)
+    const startTime = performance.now();
+
+    const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3); // curva veloce → lenta
+
+    const animate = (now) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = easeOutCubic(progress);
+
+      container.scrollLeft = start + distance * eased;
+
+      if (progress < 1) requestAnimationFrame(animate);
+    };
+
+    requestAnimationFrame(animate);
   };
 
   return (

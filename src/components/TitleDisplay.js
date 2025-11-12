@@ -2,7 +2,7 @@ import React from "react";
 
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 const easeInOutCubic = (t) =>
-  t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  1 - Math.pow(1 - t, 3); // curva veloce → lenta
 
 export default function TitleDisplay({
   sections = [],
@@ -60,7 +60,7 @@ export default function TitleDisplay({
 
   return (
     <div className="fixed top-24 left-0 right-0 z-50 px-12 pointer-events-none">
-      <div className="max-w-screen-2xl mx-auto relative h-28 overflow-hidden">
+      <div className="max-w-screen-2xl mx-auto relative h-28 overflow-visible">
         {/* CURRENT title */}
         {current && (
           <div
