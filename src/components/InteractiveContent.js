@@ -118,7 +118,7 @@ const InteractiveContent = ({
     generateOpacity = nextOpacity;
   }
 
-  // === GRIGLIA (posizionata a DESTRA in generate, a SINISTRA in predict) ===
+  // === GRIGLIA ===
   let gridTranslateX = 0;
   let gridOpacity = 0;
   let gridAlign = "right"; // 'right' in generate, 'left' in predict
