@@ -132,8 +132,12 @@ export default function App() {
       </div>
 
       {/* Interactive Content Layer */}
-      <InteractiveContent activeIndex={activeIndex} />
-
+      <InteractiveContent
+        activeIndex={activeIndex}
+        scrollIndex={scrollIndex}
+        totalSections={sectionsData.length}
+      />
+      
       <NavigationDots
         sections={sectionsData}
         activeSection={activeIndex}

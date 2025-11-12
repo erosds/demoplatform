@@ -1,44 +1,30 @@
 import React from "react";
-
-const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
-const easeInOutCubic = (t) => 1 - Math.pow(1 - t, 3); // curva veloce → lenta
+import { getAnimationProgress, ANIMATION_CONFIG } from "../utils/animationConfig";
 
 export default function TitleDisplay({
   sections = [],
   scrollIndex = 0,
   activeIndex = 0,
 }) {
-  // Anchor stabile: activeIndex (deve venire da App, es. Math.round(exactIndex))
-  const currentIndex = Math.max(0, Math.min(sections.length - 1, activeIndex));
+  const { clamp, easeInOutCubic, colorSwitchStart, colorSwitchEnd } = ANIMATION_CONFIG;
+  
+  const {
+    currentIndex,
+    nextIndex,
+    absP,
+    currentOpacity,
+    nextOpacity
+  } = getAnimationProgress(scrollIndex, activeIndex, sections.length);
 
-  // Progress signed e assoluto
-  const signedProgress = scrollIndex - currentIndex; // negativo quando scendi
-  const direction = signedProgress === 0 ? 0 : Math.sign(signedProgress); // 1 avanti, -1 indietro
-  const absP = clamp(Math.abs(signedProgress), 0, 1);
-  const eased = easeInOutCubic(absP);
-
-  // Parametri di animazione (modificabili)
+  // PARAMETRI DI ANIMAZIONE SPECIFICI PER I TITOLI
   const enterOffsetVW = 60; // distanza iniziale del titolo entrante (vw)
   const exitDistanceVW = 60; // distanza a cui il current esce (vw)
-  const exitTrigger = 0.9; // quando inizia la fase di "exit"
-  const colorSwitchStart = 0.1;
-  const colorSwitchEnd = 0.95;
 
-  const current = sections[currentIndex] || null;
-  const nextIndex = direction >= 0 ? currentIndex + 1 : currentIndex - 1;
-  const next = sections[nextIndex] || null;
-
-  // Traslazioni X: tengono conto della direction
-  const nextTranslateVW = enterOffsetVW * (1 - eased) * direction; // entra da destra (dir=1) o da sinistra (dir=-1)
-  const exitProgress = clamp((absP - exitTrigger) / (1 - exitTrigger), 0, 1);
-  const currentTranslateVW =
-    -exitDistanceVW * easeInOutCubic(exitProgress) * direction; // esce nella direzione dello scroll
-
-  // Opacità current
-  const currentOpacity = clamp(1 - easeInOutCubic(exitProgress), 0, 1);
-
-  // Opacità next: fade in graduale durante l'animazione
-  const nextOpacity = easeInOutCubic(absP);
+  // Calcolo delle traslazioni per i titoli
+  const { direction, eased, exitProgressEased } = getAnimationProgress(scrollIndex, activeIndex, sections.length);
+  
+  const nextTranslateVW = enterOffsetVW * (1 - eased) * direction;
+  const currentTranslateVW = -exitDistanceVW * exitProgressEased * direction;
 
   // Color interpolation per next (crossfade)
   const colorSwitchProgress = clamp(
@@ -60,6 +46,9 @@ export default function TitleDisplay({
   const enteringSubtitleEased = easeInOutCubic(enteringSubtitleProgress);
   const enteringSubtitleTranslateY = -20 * (1 - enteringSubtitleEased);
   const enteringSubtitleOpacity = enteringSubtitleEased;
+
+  const current = sections[currentIndex] || null;
+  const next = sections[nextIndex] || null;
 
   return (
     <div className="fixed top-24 left-0 right-0 z-50 px-12 pointer-events-none">
