@@ -21,7 +21,9 @@ const useContainerWidth = () => {
     const updateWidth = () => {
       const titleContainer = document.getElementById("title-container");
       // Uso window.innerWidth come fallback, ma idealmente si usa un contenitore specifico
-      setContainerWidth(titleContainer ? titleContainer.offsetWidth : window.innerWidth);
+      setContainerWidth(
+        titleContainer ? titleContainer.offsetWidth : window.innerWidth
+      );
     };
 
     updateWidth();
@@ -32,7 +34,6 @@ const useContainerWidth = () => {
 
   return containerWidth;
 };
-
 
 /**
  * Componente per il pulsante
@@ -86,8 +87,10 @@ const getGridAnimation = ({
   let gridOpacity = 0;
   let gridAlign = "right"; // Default: generate e select
 
-  const isTransitioningFromGenerateToPredict = currentIndex === SECTION_GENERATE && nextIndex === SECTION_PREDICT;
-  const isTransitioningFromPredictToSelect = currentIndex === SECTION_PREDICT && nextIndex === SECTION_SELECT;
+  const isTransitioningFromGenerateToPredict =
+    currentIndex === SECTION_GENERATE && nextIndex === SECTION_PREDICT;
+  const isTransitioningFromPredictToSelect =
+    currentIndex === SECTION_PREDICT && nextIndex === SECTION_SELECT;
 
   // Calcola la distanza totale di traslazione
   const totalDistance = containerWidth - GRID_WIDTH_PX;
@@ -138,7 +141,6 @@ const getGridAnimation = ({
   return { gridTranslateX, gridOpacity, gridAlign };
 };
 
-
 // ------------------------------------------------------------------
 // COMPONENTE PRINCIPALE
 // ------------------------------------------------------------------
@@ -170,7 +172,11 @@ const InteractiveContent = ({
   // Reset e logica base quando cambia sezione
   useEffect(() => {
     // Resetta tutto se non siamo in una delle sezioni interattive
-    if (activeIndex !== SECTION_GENERATE && activeIndex !== SECTION_PREDICT && activeIndex !== SECTION_SELECT) {
+    if (
+      activeIndex !== SECTION_GENERATE &&
+      activeIndex !== SECTION_PREDICT &&
+      activeIndex !== SECTION_SELECT
+    ) {
       setMolecules(Array(24).fill(null));
       setShowPredictions(false);
       setIsGenerating(false);
@@ -188,7 +194,7 @@ const InteractiveContent = ({
   }, [activeIndex]);
 
   const handleTop10 = useCallback(() => {
-    setShowTop10(prev => !prev);
+    setShowTop10((prev) => !prev);
   }, []);
 
   const handleGenerate = useCallback(() => {
@@ -212,7 +218,9 @@ const InteractiveContent = ({
 
   // Non mostrare nulla se non siamo in generate, predict, select o in transizione verso di esse
   if (
-    ![SECTION_GENERATE, SECTION_PREDICT, SECTION_SELECT].includes(activeIndex) &&
+    ![SECTION_GENERATE, SECTION_PREDICT, SECTION_SELECT].includes(
+      activeIndex
+    ) &&
     ![SECTION_GENERATE, SECTION_PREDICT, SECTION_SELECT].includes(nextIndex)
   ) {
     return null;
@@ -236,7 +244,6 @@ const InteractiveContent = ({
     nextOpacity,
     containerWidth,
   });
-
 
   // === PULSANTE GENERATE (a sinistra) ===
   let generateTranslateX = 0;
@@ -275,15 +282,12 @@ const InteractiveContent = ({
     idx,
     // La logica di score è contenuta nella MoleculeRenderer, qui recuperiamo
     // i valori per l'ordinamento e la marcatura (ring-2)
-    score: mol
-      ? parseFloat(localStorage.getItem(`mol-${idx}`) || 0)
-      : -1,
+    score: mol ? parseFloat(localStorage.getItem(`mol-${idx}`) || 0) : -1,
   }));
   const top10Indices = moleculesWithScores
     .sort((a, b) => b.score - a.score)
     .slice(0, 10)
     .map((m) => m.idx);
-
 
   return (
     <div className="absolute inset-0 pointer-events-none">
@@ -297,7 +301,7 @@ const InteractiveContent = ({
           onClick={handleGenerate}
           disabled={isGenerating}
           style={{
-            left: "4rem", // left-16
+            left: "8rem", // left-16
             transform: `translateX(${generateTranslateX}vw) translateY(-50%)`,
             opacity: generateOpacity,
           }}
@@ -311,7 +315,7 @@ const InteractiveContent = ({
           onClick={handlePredict}
           disabled={molecules[0] === null || showPredictions || isPredicting}
           style={{
-            right: "4rem", // right-16
+            right: "8rem", // right-16
             transform: `translateX(${predictTranslateX}vw) translateY(-50%)`,
             opacity: predictOpacity,
           }}
@@ -325,7 +329,7 @@ const InteractiveContent = ({
           onClick={handleTop10}
           disabled={!showPredictions}
           style={{
-            left: "4rem", // left-16
+            left: "8rem", // left-16
             transform: `translateX(${top10TranslateX}vw) translateY(-50%)`,
             opacity: top10Opacity,
           }}
@@ -334,17 +338,14 @@ const InteractiveContent = ({
           select
         </InteractiveButton>
 
-
         {/* Griglia - posizione assoluta al CENTRO, si sposta */}
         <div
           className="absolute top-1/2 -translate-y-1/2"
           style={{
-            // left/right condizionale basato su gridAlign
-            left: gridAlign === "left" ? 64 : undefined, // 64px = left-16
-            right: gridAlign === "right" ? 64 : undefined, // 64px = right-16
+            right: 64, // Mantieni sempre right: 64 come punto di riferimento
             transform: `translateX(${gridTranslateX}px) translateY(-50%)`,
             opacity: gridOpacity,
-            transition: "none", // Le animazioni sono gestite tramite transform/opacity in React
+            transition: "none",
             willChange: "transform, opacity",
           }}
         >

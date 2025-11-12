@@ -25,7 +25,7 @@ export const sectionsData = [
   },
   {
     id: 4,
-    title: 'overhead',
+    title: 'advantage',
     subtitle: 'Commitment to sustainability and environmental responsibility. Our AI-driven material discovery processes are designed to minimize waste and energy consumption, aligning with our goal to create eco-friendly solutions.',
     gradient: 'from-indigo-600 via-purple-600 to-pink-600'
   }
