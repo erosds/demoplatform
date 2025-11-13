@@ -2,13 +2,14 @@ import React from "react";
 import { getAnimationProgress } from "../utils/animationConfig";
 
 const IndustriesContent = ({ activeIndex, scrollIndex, totalSections }) => {
-  const SECTION_INDUSTRIES = 5; // <-- verifica se deve essere 4 o 5
+  const SECTION_INDUSTRIES = 5; 
+  const SECTION_IMPACT = 6;
   const { currentIndex, nextIndex, currentOpacity, nextOpacity } =
     getAnimationProgress(scrollIndex, activeIndex, totalSections);
 
   const isOnIndustries = activeIndex === SECTION_INDUSTRIES;
   const isEnteringIndustries = nextIndex === SECTION_INDUSTRIES;
-  const isExitingIndustries = currentIndex === SECTION_INDUSTRIES && nextIndex !== SECTION_INDUSTRIES;
+  const isExitingIndustries = currentIndex === SECTION_INDUSTRIES && nextIndex === SECTION_IMPACT;
 
   let containerOpacity = 0;
   if (isOnIndustries && !isExitingIndustries) {
@@ -16,7 +17,7 @@ const IndustriesContent = ({ activeIndex, scrollIndex, totalSections }) => {
   } else if (isEnteringIndustries) {
     containerOpacity = nextOpacity;
   } else if (isExitingIndustries) {
-    containerOpacity = currentOpacity;
+    containerOpacity = currentOpacity; // Usa currentOpacity quando esci verso Impact
   }
 
   // usa una soglia invece di confronto esatto a 0
@@ -85,7 +86,6 @@ const IndustriesContent = ({ activeIndex, scrollIndex, totalSections }) => {
       className="absolute inset-0 pointer-events-none"
       style={{
         opacity: containerOpacity,
-        transition: "opacity 240ms ease", // anima opacità in modo coerente
         willChange: "opacity",
       }}
     >

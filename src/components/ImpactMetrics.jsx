@@ -3,6 +3,7 @@ import { getAnimationProgress } from "../utils/animationConfig";
 
 const ImpactMetrics = ({ activeIndex, scrollIndex, totalSections }) => {
   const SECTION_IMPACT = 6; // Aggiorna se la posizione cambia
+  const SECTION_INDUSTRIES = 5;
 
   const [counters, setCounters] = useState({
     timeToMarket: 0,
@@ -22,67 +23,47 @@ const ImpactMetrics = ({ activeIndex, scrollIndex, totalSections }) => {
   } = getAnimationProgress(scrollIndex, activeIndex, totalSections);
 
   const isOnImpact = activeIndex === SECTION_IMPACT;
-  const isEnteringImpact = nextIndex === SECTION_IMPACT;
+  const isEnteringFromIndustries = currentIndex === SECTION_INDUSTRIES && nextIndex === SECTION_IMPACT;
   const isExitingImpact = currentIndex === SECTION_IMPACT && nextIndex !== SECTION_IMPACT;
 
   let containerOpacity = 0;
   if (isOnImpact && !isExitingImpact) {
     containerOpacity = 1;
-  } else if (isEnteringImpact) {
-    containerOpacity = nextOpacity;
+  } else if (isEnteringFromIndustries) {
+    containerOpacity = nextOpacity; // Usa nextOpacity quando entri da Industries
   } else if (isExitingImpact) {
     containerOpacity = currentOpacity;
   }
 
-  // Animazione contatori: parte quando il container diventa visibile (containerOpacity > 0)
   useEffect(() => {
-    const duration = 2000;
-    const targetValues = {
-      timeToMarket: 4.5,
-      accuracy: 76,
-      roi: 50,
-    };
-
-    const shouldStartAnim = containerOpacity > 0.03;
-
-    if (shouldStartAnim && !animationStartedRef.current) {
+    // Avvia l'animazione solo quando diventi visibile
+    if (containerOpacity > 0.5 && !animationStartedRef.current) {
       animationStartedRef.current = true;
-      const startTime = performance.now();
-      const easeOutQuart = (t) => 1 - Math.pow(1 - t, 4);
 
-      const animate = (t) => {
-        const elapsed = t - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const eased = easeOutQuart(progress);
+      const duration = 2000;
+      const startTime = performance.now();
+
+      const animate = (now) => {
+        const progress = Math.min((now - startTime) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 4);
 
         setCounters({
-          timeToMarket: Math.floor(targetValues.timeToMarket * eased),
-          accuracy: Math.floor(targetValues.accuracy * eased),
-          roi: Math.floor(targetValues.roi * eased),
+          timeToMarket: parseFloat((4.5 * eased).toFixed(1)),
+          accuracy: Math.floor(76 * eased),
+          roi: Math.floor(50 * eased),
         });
 
-        if (progress < 1) {
-          rafRef.current = requestAnimationFrame(animate);
-        }
+        if (progress < 1) requestAnimationFrame(animate);
       };
 
-      rafRef.current = requestAnimationFrame(animate);
+      requestAnimationFrame(animate);
     }
 
+    // Resetta quando esci completamente
     if (containerOpacity <= 0.01) {
       animationStartedRef.current = false;
-      if (rafRef.current) {
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
       setCounters({ timeToMarket: 0, accuracy: 0, roi: 0 });
     }
-
-    return () => {
-      if (rafRef.current) {
-        cancelAnimationFrame(rafRef.current);
-      }
-    };
   }, [containerOpacity]);
 
   // se non dobbiamo essere montati, non renderizziamo nulla
@@ -92,7 +73,6 @@ const ImpactMetrics = ({ activeIndex, scrollIndex, totalSections }) => {
       className="absolute inset-0 pointer-events-none"
       style={{
         opacity: containerOpacity,
-        transition: "opacity 200ms ease-out",
         willChange: "opacity",
       }}
     >

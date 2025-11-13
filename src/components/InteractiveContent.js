@@ -294,39 +294,6 @@ const InteractiveContent = ({
     }, 1500);
   }, [top10Indices]);
 
-  // Non mostrare la UI interattiva se non siamo in generate/predict/select/validate o in transizione verso di esse.
-  // Sostituisci la logica esistente che determina quando mostrare InteractiveContent
-  if (
-    ![
-      SECTION_GENERATE,
-      SECTION_PREDICT,
-      SECTION_SELECT,
-      SECTION_VALIDATE,
-    ].includes(activeIndex) &&
-    ![
-      SECTION_GENERATE,
-      SECTION_PREDICT,
-      SECTION_SELECT,
-      SECTION_VALIDATE,
-    ].includes(nextIndex)
-  ) {
-    // Renderizza solo Industries e Impact quando non siamo nelle sezioni interattive
-    return (
-      <>
-        <IndustriesContent
-          activeIndex={activeIndex}
-          scrollIndex={scrollIndex}
-          totalSections={totalSections}
-        />
-        <ImpactMetrics
-          activeIndex={activeIndex}
-          scrollIndex={scrollIndex}
-          totalSections={totalSections}
-        />
-      </>
-    );
-  }
-
   // Costanti per la logica di animazione
   const buttonEnterDistance = 50; // vw - distanza da cui entrano i pulsanti
 
@@ -613,7 +580,16 @@ const InteractiveContent = ({
           </div>
         </div>
       </div>
-
+      <IndustriesContent
+        activeIndex={activeIndex}
+        scrollIndex={scrollIndex}
+        totalSections={totalSections}
+      />
+      <ImpactMetrics
+        activeIndex={activeIndex}
+        scrollIndex={scrollIndex}
+        totalSections={totalSections}
+      />
       {/* CSS per shimmer effect (rimane invariato) */}
       <style>{`
         @keyframes shimmer {
