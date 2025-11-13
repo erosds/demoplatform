@@ -2,23 +2,26 @@ import React from "react";
 import { getAnimationProgress } from "../utils/animationConfig";
 
 const IndustriesContent = ({ activeIndex, scrollIndex, totalSections }) => {
-  const SECTION_INDUSTRIES = 5;
-
+  const SECTION_INDUSTRIES = 4; // <-- verifica se deve essere 4 o 5
   const { currentIndex, nextIndex, currentOpacity, nextOpacity } =
     getAnimationProgress(scrollIndex, activeIndex, totalSections);
 
   const isOnIndustries = activeIndex === SECTION_INDUSTRIES;
   const isEnteringIndustries = nextIndex === SECTION_INDUSTRIES;
-  const shouldShow = isOnIndustries || isEnteringIndustries;
+  const isExitingIndustries = currentIndex === SECTION_INDUSTRIES && activeIndex !== SECTION_INDUSTRIES;
 
   let containerOpacity = 0;
   if (isOnIndustries) {
-    containerOpacity = currentOpacity;
+    containerOpacity = 1;
   } else if (isEnteringIndustries) {
     containerOpacity = nextOpacity;
+  } else if (isExitingIndustries) {
+    containerOpacity = currentOpacity;
   }
 
-  if (!shouldShow) return null;
+  // usa una soglia invece di confronto esatto a 0
+  if (containerOpacity <= 0.01) return null;
+
 
   const industries = [
     {
@@ -76,17 +79,18 @@ const IndustriesContent = ({ activeIndex, scrollIndex, totalSections }) => {
     }
   ];
 
+
   return (
     <div
       className="absolute inset-0 pointer-events-none"
       style={{
         opacity: containerOpacity,
-        transition: "none",
+        transition: "opacity 240ms ease", // anima opacità in modo coerente
         willChange: "opacity",
       }}
     >
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-7xl px-8">
-        <div className="grid grid-cols-4 gap-8">
+        <div className="grid grid-cols-3 gap-8">
           {industries.map((industry, idx) => (
             <div
               key={idx}
