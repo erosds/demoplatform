@@ -11,11 +11,8 @@ const ImpactMetrics = ({ activeIndex, scrollIndex, totalSections }) => {
   });
 
   // Manteniamo montato il componente fino a fine fade-out
-  const [visible, setVisible] = useState(false);
-
   const animationStartedRef = useRef(false);
   const rafRef = useRef(null);
-  const timeoutRef = useRef(null);
 
   const {
     currentIndex,
@@ -24,55 +21,33 @@ const ImpactMetrics = ({ activeIndex, scrollIndex, totalSections }) => {
     nextOpacity,
   } = getAnimationProgress(scrollIndex, activeIndex, totalSections);
 
-  // Consideriamo la sezione "visibile" se è current o next (entra/è dentro/esce)
-  const isCurrent = currentIndex === SECTION_IMPACT;
-  const isNext = nextIndex === SECTION_IMPACT;
-  const shouldShow = isCurrent || isNext;
+  const isOnImpact = activeIndex === SECTION_IMPACT;
+  const isEnteringImpact = nextIndex === SECTION_IMPACT;
+  const isExitingImpact = currentIndex === SECTION_IMPACT && nextIndex !== SECTION_IMPACT;
 
-  // Calcola opacità del container in base allo stato di animazione
   let containerOpacity = 0;
-  if (isCurrent) containerOpacity = currentOpacity ?? 0;
-  else if (isNext) containerOpacity = nextOpacity ?? 0;
-
-  // Se shouldShow diventa true, montiamo subito; se diventa false, aspettiamo
-  useEffect(() => {
-    if (shouldShow) {
-      // Cancel eventuale unmount timeout
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-      setVisible(true);
-    } else if (visible) {
-      // rimani visibile per il tempo della transizione prima di smontare
-      // scegli un tempo leggermente maggiore della transizione CSS (qui 260ms)
-      timeoutRef.current = setTimeout(() => {
-        setVisible(false);
-      }, 160);
-    }
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-    };
-  }, [shouldShow, visible]);
+  if (isOnImpact && !isExitingImpact) {
+    containerOpacity = 1;
+  } else if (isEnteringImpact) {
+    containerOpacity = nextOpacity;
+  } else if (isExitingImpact) {
+    containerOpacity = currentOpacity;
+  }
 
   // Animazione contatori: parte quando il container diventa visibile (containerOpacity > 0)
   useEffect(() => {
-    const duration = 2000; // durata animazione contatori (ms)
+    const duration = 2000;
     const targetValues = {
       timeToMarket: 4.5,
       accuracy: 76,
       roi: 50,
     };
 
-    // avvia l'animazione quando il container comincia ad apparire
-    const shouldStartAnim = containerOpacity > 0.03 && visible; // soglia per iniziare
+    const shouldStartAnim = containerOpacity > 0.03;
+
     if (shouldStartAnim && !animationStartedRef.current) {
       animationStartedRef.current = true;
       const startTime = performance.now();
-
       const easeOutQuart = (t) => 1 - Math.pow(1 - t, 4);
 
       const animate = (t) => {
@@ -88,16 +63,13 @@ const ImpactMetrics = ({ activeIndex, scrollIndex, totalSections }) => {
 
         if (progress < 1) {
           rafRef.current = requestAnimationFrame(animate);
-        } else {
-          rafRef.current = null;
         }
       };
 
       rafRef.current = requestAnimationFrame(animate);
     }
 
-    // quando il container scompare completamente (visible === false), resetta i contatori
-    if (!visible) {
+    if (containerOpacity <= 0.01) {
       animationStartedRef.current = false;
       if (rafRef.current) {
         cancelAnimationFrame(rafRef.current);
@@ -107,18 +79,14 @@ const ImpactMetrics = ({ activeIndex, scrollIndex, totalSections }) => {
     }
 
     return () => {
-      // cleanup se dipendenze cambiano
-      if (!visible && rafRef.current) {
+      if (rafRef.current) {
         cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [containerOpacity, visible]); // dipendiamo da containerOpacity e visible
+  }, [containerOpacity]);
 
   // se non dobbiamo essere montati, non renderizziamo nulla
-  if (!visible) return null;
-
+  if (containerOpacity <= 0.01) return null;
   return (
     <div
       className="absolute inset-0 pointer-events-none"

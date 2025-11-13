@@ -8,10 +8,10 @@ const IndustriesContent = ({ activeIndex, scrollIndex, totalSections }) => {
 
   const isOnIndustries = activeIndex === SECTION_INDUSTRIES;
   const isEnteringIndustries = nextIndex === SECTION_INDUSTRIES;
-  const isExitingIndustries = currentIndex === SECTION_INDUSTRIES && activeIndex !== SECTION_INDUSTRIES;
+  const isExitingIndustries = currentIndex === SECTION_INDUSTRIES && nextIndex !== SECTION_INDUSTRIES;
 
   let containerOpacity = 0;
-  if (isOnIndustries) {
+  if (isOnIndustries && !isExitingIndustries) {
     containerOpacity = 1;
   } else if (isEnteringIndustries) {
     containerOpacity = nextOpacity;

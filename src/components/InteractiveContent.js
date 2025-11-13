@@ -295,6 +295,7 @@ const InteractiveContent = ({
   }, [top10Indices]);
 
   // Non mostrare la UI interattiva se non siamo in generate/predict/select/validate o in transizione verso di esse.
+  // Sostituisci la logica esistente che determina quando mostrare InteractiveContent
   if (
     ![
       SECTION_GENERATE,
@@ -309,6 +310,7 @@ const InteractiveContent = ({
       SECTION_VALIDATE,
     ].includes(nextIndex)
   ) {
+    // Renderizza solo Industries e Impact quando non siamo nelle sezioni interattive
     return (
       <>
         <IndustriesContent
@@ -643,17 +645,6 @@ const InteractiveContent = ({
           animation: shimmer 1.0s infinite;
         }
       `}</style>
-      <IndustriesContent 
-        activeIndex={activeIndex}
-        scrollIndex={scrollIndex}
-        totalSections={totalSections}
-      />
-
-      <ImpactMetrics
-        activeIndex={activeIndex}
-        scrollIndex={scrollIndex}
-        totalSections={totalSections}
-      />
     </div>
   );
 };

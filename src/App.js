@@ -48,9 +48,9 @@ export default function App() {
     // Keyboard navigation (quando il container è a fuoco)
     const onKey = (e) => {
       if (e.key === "ArrowRight") {
-        scrollTo(Math.min(sectionsData.length - 1, activeIndex + 1));
+        scrollToSection(Math.min(sectionsData.length - 1, activeIndex + 1));
       } else if (e.key === "ArrowLeft") {
-        scrollTo(Math.max(0, activeIndex - 1));
+        scrollToSection(Math.max(0, activeIndex - 1));
       }
     };
     // aggiunto al window così funziona anche se il container non ha focus; se preferisci limitare al container,
@@ -65,7 +65,7 @@ export default function App() {
     };
   }, [onScrollHandler, activeIndex]);
 
-  const scrollTo = (idx) => {
+  const scrollToSection = (idx) => {
     const container = containerRef.current;
     if (!container) return;
 
@@ -73,10 +73,10 @@ export default function App() {
     const start = container.scrollLeft;
     const end = idx * w;
     const distance = end - start;
-    const duration = 1000; // durata in ms (1s)
+    const duration = 1000;
     const startTime = performance.now();
 
-    const easeOutQuint = (t) => 1 - Math.pow(1 - t, 5); // curva molto lenta alla fine
+    const easeOutQuint = (t) => 1 - Math.pow(1 - t, 5);
 
     const animate = (now) => {
       const elapsed = now - startTime;
@@ -139,12 +139,12 @@ export default function App() {
       <NavigationDots
         sections={sectionsData}
         activeSection={activeIndex}
-        onNavigate={scrollTo}
+        onNavigate={scrollToSection}
       />
       <NavigationArrows
         activeSection={activeIndex}
         totalSections={sectionsData.length}
-        onNavigate={scrollTo}
+        onNavigate={scrollToSection}
       />
       <style>{`
         /* Nascondi scrollbar solo per il container con classe .no-scrollbar */
