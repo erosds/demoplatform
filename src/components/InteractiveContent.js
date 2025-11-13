@@ -643,6 +643,11 @@ const InteractiveContent = ({
           animation: shimmer 1.0s infinite;
         }
       `}</style>
+      <IndustriesContent 
+        activeIndex={activeIndex}
+        scrollIndex={scrollIndex}
+        totalSections={totalSections}
+      />
 
       <ImpactMetrics
         activeIndex={activeIndex}

@@ -2,7 +2,7 @@ import React from "react";
 import { getAnimationProgress } from "../utils/animationConfig";
 
 const IndustriesContent = ({ activeIndex, scrollIndex, totalSections }) => {
-  const SECTION_INDUSTRIES = 4; // <-- verifica se deve essere 4 o 5
+  const SECTION_INDUSTRIES = 5; // <-- verifica se deve essere 4 o 5
   const { currentIndex, nextIndex, currentOpacity, nextOpacity } =
     getAnimationProgress(scrollIndex, activeIndex, totalSections);
 
@@ -90,7 +90,7 @@ const IndustriesContent = ({ activeIndex, scrollIndex, totalSections }) => {
       }}
     >
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-7xl px-8">
-        <div className="grid grid-cols-3 gap-8">
+        <div className="grid grid-cols-4 gap-8">
           {industries.map((industry, idx) => (
             <div
               key={idx}
