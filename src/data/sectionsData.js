@@ -24,15 +24,15 @@ export const sectionsData = [
     id: 3,
     title: "select",
     subtitle:
-      "Scientists can <strong>focus their efforts in lab</strong> on high-potential candidates, reducing <strong>time and resources</strong> spent on less promising options.",
-    gradient: "from-green-600 via-emerald-600 to-teal-600",
+      "Select top candidates based on <strong>target criteria</strong> such as conductivity, stability, toxicity, or binding affinity. Focus resources on <strong>high-potential molecules</strong> that meet specific requirements.",
+    gradient: "from-yellow-600 via-amber-600 to-orange-600",
   },
   {
     id: 4,
     title: "validate",
     subtitle:
-      "Verify predicted properties through <strong>experimental validation</strong> and iterative refinement. Bridge the gap between <strong>computational predictions and real-world performance</strong>.",
-    gradient: "from-yellow-600 via-amber-600 to-orange-600",
+      "Scientists validate candidates through <strong>computational chemistry and laboratory experiments</strong>. The advantage: testing only a <strong>reduced number of high-potential candidates</strong> instead of thousands of compounds.",
+    gradient: "from-green-600 via-emerald-600 to-teal-600",
   },
   {
     id: 5,

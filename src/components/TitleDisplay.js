@@ -58,6 +58,7 @@ export default function TitleDisplay({
       <div
         className="max-w-screen-2xl mx-auto relative h-28 overflow-visible"
         id="title-container"
+        style={{ minWidth: "800px" }} // AGGIUNGI QUESTA LINEA
       >
         {/* CURRENT title */}
         {current && (
@@ -101,8 +102,7 @@ export default function TitleDisplay({
                 opacity: currentSubtitleOpacity,
                 willChange: "transform, opacity",
               }}
-            >
-            </p>
+            ></p>
           </div>
         )}
 
@@ -162,8 +162,7 @@ export default function TitleDisplay({
                 opacity: enteringSubtitleOpacity,
                 willChange: "transform, opacity",
               }}
-            >
-            </p>
+            ></p>
           </div>
         )}
       </div>

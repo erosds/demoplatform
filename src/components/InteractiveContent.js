@@ -178,6 +178,9 @@ const InteractiveContent = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPredicting, setIsPredicting] = useState(false);
   const [showTop10, setShowTop10] = useState(false);
+  // Riga ~133, dopo gli altri useState:
+  const [validationResults, setValidationResults] = useState([]); // Array di indici validati con successo
+  const [isValidating, setIsValidating] = useState(false);
 
   const containerWidth = useContainerWidth();
 
@@ -192,7 +195,6 @@ const InteractiveContent = ({
     nextOpacity,
   } = getAnimationProgress(scrollIndex, activeIndex, totalSections);
 
-  // Reset e logica base quando cambia sezione
   useEffect(() => {
     // Resetta tutto se non siamo in una delle sezioni interattive
     if (
@@ -214,6 +216,12 @@ const InteractiveContent = ({
     // Su Generate e Predict, nascondi top 10
     if (activeIndex === SECTION_GENERATE || activeIndex === SECTION_PREDICT) {
       setShowTop10(false);
+    }
+
+    // AGGIUNGI QUESTE RIGHE:
+    if (activeIndex !== SECTION_VALIDATE) {
+      setValidationResults([]);
+      setIsValidating(false);
     }
   }, [activeIndex]);
 
@@ -247,10 +255,31 @@ const InteractiveContent = ({
     }, 1500);
   }, []);
 
+  // ------------------------------------------
+  // Logica per Top 10
+  // ------------------------------------------
+  const moleculesWithScores = molecules.map((mol, idx) => ({
+    idx,
+    // La logica di score è contenuta nella MoleculeRenderer, qui recuperiamo
+    // i valori per l'ordinamento e la marcatura (ring-2)
+    score: mol ? parseFloat(localStorage.getItem(`mol-${idx}`) || 0) : -1,
+  }));
+  const top10Indices = moleculesWithScores
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 10)
+    .map((m) => m.idx);
+
   const handleValidate = useCallback(() => {
-    // Da implementare
-    console.log("Validate clicked");
-  }, []);
+    setIsValidating(true);
+
+    setTimeout(() => {
+      // Seleziona 8 molecole random dalle top 10
+      const shuffled = [...top10Indices].sort(() => Math.random() - 0.5);
+      const validated = shuffled.slice(0, 8);
+      setValidationResults(validated);
+      setIsValidating(false);
+    }, 1000);
+  }, [top10Indices]);
 
   // Non mostrare la UI interattiva se non siamo in generate/predict/select/validate o in transizione verso di esse.
   if (
@@ -342,20 +371,6 @@ const InteractiveContent = ({
     validateOpacity = nextOpacity;
   }
 
-  // ------------------------------------------
-  // Logica per Top 10
-  // ------------------------------------------
-  const moleculesWithScores = molecules.map((mol, idx) => ({
-    idx,
-    // La logica di score è contenuta nella MoleculeRenderer, qui recuperiamo
-    // i valori per l'ordinamento e la marcatura (ring-2)
-    score: mol ? parseFloat(localStorage.getItem(`mol-${idx}`) || 0) : -1,
-  }));
-  const top10Indices = moleculesWithScores
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 10)
-    .map((m) => m.idx);
-
   // Determina se mostrare griglia 5 colonne (validate) o 8 colonne
   const isValidateGrid = activeIndex === SECTION_VALIDATE;
 
@@ -363,8 +378,11 @@ const InteractiveContent = ({
     <div className="absolute inset-0 pointer-events-none">
       <div
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-        // Larghezza del container calcolata
-        style={{ width: containerWidth || "100%", height: "60vh" }}
+        style={{
+          width: containerWidth || "100%",
+          height: "60vh",
+          maxWidth: "1536px", // match con max-w-screen-2xl
+        }}
       >
         {/* Pulsante GENERATE */}
         <InteractiveButton
@@ -403,7 +421,7 @@ const InteractiveContent = ({
             transform: `translateX(${top10TranslateX}vw) translateY(-50%)`,
             opacity: top10Opacity,
           }}
-          className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 hover:shadow-green-500/50"
+          className="bg-gradient-to-r from-yellow-600 via-amber-600 to-orange-600 hover:shadow-yellow-500/50"
         >
           select
         </InteractiveButton>
@@ -417,7 +435,7 @@ const InteractiveContent = ({
             transform: `translateX(${validateTranslateX}vw) translateY(-50%)`,
             opacity: validateOpacity,
           }}
-          className="bg-gradient-to-r from-yellow-600 via-amber-600 to-orange-600 hover:shadow-yellow-500/50"
+          className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 hover:shadow-green-500/50"
         >
           validate
         </InteractiveButton>
@@ -426,7 +444,7 @@ const InteractiveContent = ({
         <div
           className="absolute top-1/2 -translate-y-1/2"
           style={{
-            right: 64,
+            right: 0, // CAMBIA DA 64 A 0
             transform: `translateX(${gridTranslateX}px) translateY(-50%)`,
             opacity: gridOpacity,
             transition: "none",
@@ -501,6 +519,14 @@ const InteractiveContent = ({
                   key={idx}
                   className={`absolute w-28 h-28 rounded-lg bg-[#1a1a1a] overflow-hidden flex items-center justify-center ${
                     showTop10 && isTop10 && !isValidateGrid
+                      ? "ring-2 ring-orange-500"
+                      : ""
+                  } ${
+                    isValidateGrid && isTop10 && validationResults.length === 0
+                      ? "ring-2 ring-orange-500"
+                      : ""
+                  } ${
+                    validationResults.includes(idx)
                       ? "ring-2 ring-green-500"
                       : ""
                   }`}
@@ -526,6 +552,13 @@ const InteractiveContent = ({
 
                   {/* Shimmer durante predict */}
                   {mol && isPredicting && !isGenerating && (
+                    <div className="absolute inset-0 bg-black/80">
+                      <div className="absolute inset-0 shimmer-effect" />
+                    </div>
+                  )}
+
+                  {/* Shimmer durante validate */}
+                  {mol && isValidating && isValidateGrid && isTop10 && (
                     <div className="absolute inset-0 bg-black/80">
                       <div className="absolute inset-0 shimmer-effect" />
                     </div>
@@ -583,6 +616,16 @@ const InteractiveContent = ({
             90deg,
             transparent 0%,
             rgba(255, 255, 255, 0.1) 50%,
+            transparent 100%
+          );
+          animation: shimmer 1.0s infinite;
+        }
+
+        .shimmer-effect-green {
+          background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(34, 197, 94, 0.3) 50%,
             transparent 100%
           );
           animation: shimmer 1.0s infinite;
