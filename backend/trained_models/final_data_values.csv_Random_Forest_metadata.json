@@ -11,12 +11,12 @@
     "train_r2": null,
     "train_accuracy": 1.0,
     "overfit_gap": 0.02031714568880083,
-    "training_time_seconds": 5.976,
+    "training_time_seconds": 0.287,
     "n_train_samples": 8068,
     "n_test_samples": 2018
   },
   "feature_count": 42,
-  "trained_at": "2026-02-05 21:19:41",
+  "trained_at": "2026-02-05 22:49:43",
   "parameters": {
     "n_estimators": 100,
     "random_state": 42,

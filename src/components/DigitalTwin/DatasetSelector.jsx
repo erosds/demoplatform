@@ -3,13 +3,12 @@ import React, { useState, useEffect, useRef } from "react";
 const API_URL = "http://localhost:8000";
 
 /* ------------------------------------------------------------------ */
-/*  Custom Dropdown – sostituisce il <select> nativo                  */
+/*  Custom Dropdown                                                    */
 /* ------------------------------------------------------------------ */
 const CustomDropdown = ({ options, value, onChange, placeholder, disabled }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  // Chiudi quando si clicca fuori
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -27,7 +26,6 @@ const CustomDropdown = ({ options, value, onChange, placeholder, disabled }) => 
 
   return (
     <div ref={dropdownRef} className="relative w-full">
-      {/* Trigger */}
       <button
         type="button"
         onClick={() => !disabled && setIsOpen((prev) => !prev)}
@@ -37,14 +35,11 @@ const CustomDropdown = ({ options, value, onChange, placeholder, disabled }) => 
           flex items-center justify-between
           transition-colors duration-200 outline-none
           ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
-          ${isOpen ? "" : ""}
         `}
       >
         <span className={value ? "text-white" : "text-gray-500"}>
           {value || placeholder || "Select an option"}
         </span>
-
-        {/* Chevron */}
         <svg
           className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
           fill="none"
@@ -55,7 +50,6 @@ const CustomDropdown = ({ options, value, onChange, placeholder, disabled }) => 
         </svg>
       </button>
 
-      {/* Menu */}
       {isOpen && options.length > 0 && (
         <div
           className="absolute z-50 mt-2 w-full bg-[#1a1a1a] rounded overflow-hidden shadow-2xl shadow-black/60"
@@ -132,10 +126,15 @@ const DatasetSelector = ({ onSelect, selectedDataset }) => {
     );
   }
 
+  // Tutte le colonne per la preview (features + target)
+  const allColumns = datasetInfo
+    ? [...datasetInfo.features, datasetInfo.target]
+    : [];
+
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-8">
-      {/* Dropdown custom */}
-      <div className="w-full max-w-md">
+    <div className="flex flex-col items-center justify-center h-full gap-6 px-8 pt-32">
+      {/* Dropdown — stessa larghezza max del blocco info */}
+      <div className="w-full max-w-4xl">
         <CustomDropdown
           options={datasets}
           value={selectedDataset}
@@ -145,16 +144,18 @@ const DatasetSelector = ({ onSelect, selectedDataset }) => {
         />
       </div>
 
-      {/* Info dataset */}
+      {/* Shimmer loading */}
       {loadingInfo && (
         <div className="w-full max-w-4xl bg-[#1a1a1a] rounded p-8">
           <div className="shimmer-effect h-40"></div>
         </div>
       )}
 
+      {/* Info dataset */}
       {datasetInfo && !loadingInfo && (
         <div className="w-full max-w-4xl bg-[#1a1a1a] rounded p-8">
-          <div className="grid grid-cols-3 gap-6 mb-6">
+          {/* Metriche — 4 colonne */}
+          <div className="grid grid-cols-4 gap-6 mb-6">
             <div className="text-center">
               <div className="text-4xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
                 {datasetInfo.rows.toLocaleString()}
@@ -175,8 +176,69 @@ const DatasetSelector = ({ onSelect, selectedDataset }) => {
               </div>
               <div className="text-gray-400 text-sm mt-2">Classes</div>
             </div>
+
+            <div className="text-center">
+              <div className={`text-4xl font-bold ${datasetInfo.rows_with_nan > 0
+                  ? "bg-gradient-to-r from-orange-500 to-red-500"
+                  : "bg-gradient-to-r from-green-500 to-emerald-500"
+                } bg-clip-text text-transparent`}>
+                {datasetInfo.rows_with_nan.toLocaleString()}
+              </div>
+              <div className="text-gray-400 text-sm mt-2">Rows with NaN</div>
+            </div>
           </div>
 
+          {/* Preview — prime 5 righe */}
+          {datasetInfo.preview && datasetInfo.preview.length > 0 && (
+            <div className="pt-6 mt-6">
+              <h4 className="text-white font-semibold mb-3">Preview</h4>
+              <div className="overflow-x-auto rounded">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-[#0a0a0a]">
+                      {allColumns.map((col) => (
+                        <th
+                          key={col}
+                          className={`px-3 py-2 text-left text-xs font-semibold uppercase whitespace-nowrap ${col === datasetInfo.target
+                              ? "text-cyan-400 bg-cyan-600/10"
+                              : "text-gray-400"
+                            }`}
+                        >
+                          {col}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {datasetInfo.preview.map((row, rowIdx) => (
+                      <tr
+                        key={rowIdx}
+                        className={`${rowIdx % 2 === 0 ? "bg-[#1a1a1a]" : "bg-[#141414]"} transition-colors`}
+                      >
+                        {allColumns.map((col) => {
+                          const val = row[col];
+                          const isTarget = col === datasetInfo.target;
+                          return (
+                            <td
+                              key={col}
+                              className={`px-3 py-2 whitespace-nowrap font-mono text-xs ${isTarget
+                                  ? "text-cyan-300 bg-cyan-600/5 font-semibold"
+                                  : "text-gray-300"
+                                }`}
+                            >
+                              {val === null || val === undefined ? "NaN" : String(val)}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Class Distribution */}
           <div className="pt-6">
             <h4 className="text-white font-semibold mb-3">Class Distribution</h4>
             <div className="flex flex-wrap gap-3">

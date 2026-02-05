@@ -31,20 +31,15 @@ class MLService:
         Rileva automaticamente se è classificazione o regressione
         Returns: 'classification' or 'regression'
         """
-        # Se y contiene stringhe o oggetti → classificazione
         if y.dtype == 'object' or isinstance(y[0], str):
             return 'classification'
         
-        # Se y è numerico
         unique_values = len(np.unique(y))
         total_values = len(y)
         
-        # Se ci sono pochi valori unici rispetto al totale → classificazione
-        # Euristica: se unique/total < 0.05 → probabilmente classificazione
         if unique_values / total_values < 0.05:
             return 'classification'
         
-        # Altrimenti → regressione
         return 'regression'
         
     def list_datasets(self):
@@ -77,6 +72,24 @@ class MLService:
             class_dist = {}
             n_classes = None
         
+        # Conta righe con almeno un NaN o stringa vuota
+        nan_mask = df.isna()
+        empty_str_mask = df.apply(lambda col: col.map(lambda x: isinstance(x, str) and x.strip() == ""))
+        rows_with_nan = int((nan_mask | empty_str_mask).any(axis=1).sum())
+        
+        # Preview: prime 5 righe come lista di dict
+        preview_df = df.head(5)
+        preview = []
+        for _, row in preview_df.iterrows():
+            row_dict = {}
+            for col in df.columns:
+                val = row[col]
+                if pd.isna(val):
+                    row_dict[col] = None
+                else:
+                    row_dict[col] = val if not isinstance(val, (np.integer, np.floating)) else val.item()
+            preview.append(row_dict)
+        
         info = {
             "filename": filename,
             "rows": len(df),
@@ -85,7 +98,9 @@ class MLService:
             "target": target_col,
             "task_type": task_type,
             "n_classes": n_classes,
-            "class_distribution": {str(k): int(v) for k, v in class_dist.items()}
+            "class_distribution": {str(k): int(v) for k, v in class_dist.items()},
+            "rows_with_nan": rows_with_nan,
+            "preview": preview,
         }
         
         self.datasets_cache[filename] = {
@@ -107,7 +122,6 @@ class MLService:
         X = df.iloc[:, :-1].values
         y = df[target_col].values
         
-        # Per classificazione, usa stratify
         stratify = y if task_type == 'classification' else None
         
         X_train, X_test, y_train, y_test = train_test_split(
@@ -120,12 +134,10 @@ class MLService:
         """Allena un singolo modello"""
         start_time = time.time()
         
-        # Rileva task type
         task_type = self.datasets_cache[dataset]["info"]["task_type"]
         
         ModelClass = self.model_classes[model_name]
         
-        # Parametri ottimizzati per ciascun modello
         params = {
             "AdaBoost": {"n_estimators": 100, "learning_rate": 1.0, "random_state": 42},
             "Gradient Boosting": {"n_estimators": 100, "learning_rate": 0.1, "max_depth": 3, "random_state": 42},
@@ -138,11 +150,9 @@ class MLService:
         
         training_time = time.time() - start_time
         
-        # Predizioni
         y_pred = model.predict(X_test)
         y_train_pred = model.predict(X_train)
         
-        # Metriche comuni
         metrics = {
             "accuracy": float(accuracy_score(y_test, y_pred)),
             "precision": float(precision_score(y_test, y_pred, average='weighted', zero_division=0)),
@@ -150,28 +160,23 @@ class MLService:
             "f1_score": float(f1_score(y_test, y_pred, average='weighted', zero_division=0)),
         }
         
-        # Aggiungi R² SOLO per regressione
         if task_type == 'regression':
             metrics["r2_score"] = float(r2_score(y_test, y_pred))
             metrics["train_r2"] = float(r2_score(y_train, y_train_pred))
         else:
-            # Per classificazione, R² non ha senso, lascia None o ometti
             metrics["r2_score"] = None
             metrics["train_r2"] = None
         
-        # Metriche di training
         metrics["train_accuracy"] = float(accuracy_score(y_train, y_train_pred))
         metrics["overfit_gap"] = metrics["train_accuracy"] - metrics["accuracy"]
         metrics["training_time_seconds"] = round(training_time, 3)
         metrics["n_train_samples"] = len(y_train)
         metrics["n_test_samples"] = len(y_test)
         
-        # Salva il modello
         model_key = f"{dataset}_{model_name.replace(' ', '_')}"
         model_path = self.models_dir / f"{model_key}.joblib"
         joblib.dump(model, model_path)
         
-        # Salva anche i metadati
         from datetime import datetime
         metadata = {
             "dataset": dataset,
@@ -198,7 +203,6 @@ class MLService:
         """Usa un modello trainato per fare predizioni sul test set"""
         model_key = f"{dataset}_{model_name.replace(' ', '_')}"
         
-        # Carica il modello se non in cache
         if model_key not in self.trained_models:
             model_path = self.models_dir / f"{model_key}.joblib"
             if not model_path.exists():
@@ -215,16 +219,13 @@ class MLService:
                 "metadata": metadata
             }
         
-        # Ottieni task type
         task_type = self.trained_models[model_key]["metadata"]["task_type"]
         
-        # Prepara i dati (usa stesso random_state per consistenza)
         X_train, X_test, y_train, y_test = self.prepare_data(dataset, 0.2, 42)
         
         model = self.trained_models[model_key]["model"]
         y_pred = model.predict(X_test)
         
-        # Crea risultati dettagliati
         results = []
         for i in range(len(y_test)):
             result_dict = {
@@ -233,18 +234,15 @@ class MLService:
                 "predicted_value": str(y_pred[i]),
             }
             
-            # Per classificazione: correct boolean
             if task_type == 'classification':
                 result_dict["correct"] = bool(y_test[i] == y_pred[i])
                 result_dict["error"] = None
             else:
-                # Per regressione: errore numerico
                 result_dict["correct"] = None
                 result_dict["error"] = float(abs(y_test[i] - y_pred[i]))
             
             results.append(result_dict)
         
-        # Calcola metriche
         metrics = {
             "accuracy": float(accuracy_score(y_test, y_pred)),
             "precision": float(precision_score(y_test, y_pred, average='weighted', zero_division=0)),
@@ -253,7 +251,6 @@ class MLService:
             "confusion_matrix": confusion_matrix(y_test, y_pred).tolist()
         }
         
-        # Aggiungi R² solo per regressione
         if task_type == 'regression':
             metrics["r2_score"] = float(r2_score(y_test, y_pred))
         else:

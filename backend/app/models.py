@@ -7,9 +7,11 @@ class DatasetInfo(BaseModel):
     columns: int
     features: List[str]
     target: str
-    task_type: str = "classification"  # NEW: "classification" o "regression"
-    n_classes: Optional[int] = None     # NEW: numero di classi (solo per classificazione)
+    task_type: str = "classification"
+    n_classes: Optional[int] = None
     class_distribution: Dict[str, int]
+    rows_with_nan: int = 0
+    preview: List[Dict[str, Any]] = []
 
 class TrainingRequest(BaseModel):
     dataset: str

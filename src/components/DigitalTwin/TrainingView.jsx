@@ -123,7 +123,7 @@ const TrainingView = ({ dataset, selectedModels, onTrainingComplete }) => {
             return (
               <div
                 key={modelName}
-                className="bg-[#1a1a1a] rounded p-4 border border-gray-900"
+                className="bg-[#1a1a1a] rounded p-4"
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
