@@ -17,6 +17,17 @@ const TrainingView = ({ dataset, selectedModels, onTrainingComplete }) => {
     setTrainingProgress({});
     setCompletedModels([]);
 
+    // Inizializza il progresso a 0 per tutti i modelli
+    const initialProgress = {};
+    selectedModels.forEach(model => {
+      initialProgress[model] = {
+        progress: 0,
+        metrics: null,
+        status: "pending"
+      };
+    });
+    setTrainingProgress(initialProgress);
+
     // WebSocket connection
     const ws = new WebSocket(`ws://localhost:8000/ws/train`);
     wsRef.current = ws;
@@ -39,7 +50,7 @@ const TrainingView = ({ dataset, selectedModels, onTrainingComplete }) => {
           ...prev,
           [data.model]: {
             progress: data.progress,
-            metrics: data.metrics,
+            metrics: data.metrics || prev[data.model]?.metrics,
             status: data.status
           }
         }));
@@ -96,10 +107,11 @@ const TrainingView = ({ dataset, selectedModels, onTrainingComplete }) => {
 
       {/* Progress per ogni modello */}
       {selectedModels.length > 0 && (
-        <div className="w-full max-w-5xl space-y-4">
+        <div className="w-full max-w-4xl space-y-4">
           {selectedModels.map((modelName) => {
             const progress = trainingProgress[modelName];
             const isCompleted = completedModels.includes(modelName);
+            const currentProgress = progress?.progress || 0;
 
             return (
               <div
@@ -107,7 +119,12 @@ const TrainingView = ({ dataset, selectedModels, onTrainingComplete }) => {
                 className="bg-[#1a1a1a] rounded-xl p-6 border border-gray-900"
               >
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-semibold text-white">{modelName}</h3>
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-xl font-semibold text-white">{modelName}</h3>
+                    <span className="text-sm text-gray-400 font-mono">
+                      {currentProgress.toFixed(0)}%
+                    </span>
+                  </div>
                   
                   {isCompleted && (
                     <svg className="w-6 h-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -119,14 +136,14 @@ const TrainingView = ({ dataset, selectedModels, onTrainingComplete }) => {
                 {/* Progress bar */}
                 <div className="relative h-2 bg-gray-800 rounded-full overflow-hidden mb-4">
                   <div
-                    className="absolute top-0 left-0 h-full bg-gradient-to-r from-purple-600 to-pink-600 transition-all duration-500"
-                    style={{ width: `${progress?.progress || 0}%` }}
+                    className="absolute top-0 left-0 h-full bg-gradient-to-r from-purple-600 to-pink-600 transition-all duration-300 ease-out"
+                    style={{ width: `${currentProgress}%` }}
                   />
                 </div>
 
-                {/* Metrics - AGGIORNATO: 5 colonne con R² */}
+                {/* Metrics */}
                 {progress?.metrics && (
-                  <div className="grid grid-cols-5 gap-4 mt-4">
+                  <div className="grid grid-cols-4 gap-4 mt-4">
                     <div className="text-center">
                       <div className="text-2xl font-bold text-purple-400">
                         {(progress.metrics.accuracy * 100).toFixed(1)}%
@@ -153,51 +170,6 @@ const TrainingView = ({ dataset, selectedModels, onTrainingComplete }) => {
                         {(progress.metrics.f1_score * 100).toFixed(1)}%
                       </div>
                       <div className="text-xs text-gray-500 mt-1">F1-Score</div>
-                    </div>
-                    
-                    {/* NUOVA COLONNA: R² Score */}
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-emerald-400">
-                        {(progress.metrics.r2_score * 100).toFixed(1)}%
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">R² Score</div>
-                    </div>
-                  </div>
-                )}
-
-                {/* SEZIONE AGGIUNTIVA: Metriche avanzate */}
-                {progress?.metrics && (
-                  <div className="mt-6 pt-4 border-t border-gray-800">
-                    <div className="grid grid-cols-3 gap-4 text-sm">
-                      {/* Overfit Gap */}
-                      <div className="flex flex-col">
-                        <span className="text-gray-500 mb-1">Overfit Gap</span>
-                        <span className={`font-semibold ${
-                          progress.metrics.overfit_gap < 0.02 ? 'text-green-400' :
-                          progress.metrics.overfit_gap < 0.05 ? 'text-yellow-400' :
-                          'text-red-400'
-                        }`}>
-                          {(progress.metrics.overfit_gap * 100).toFixed(2)}%
-                        </span>
-                      </div>
-
-                      {/* Training Accuracy */}
-                      <div className="flex flex-col">
-                        <span className="text-gray-500 mb-1">Train Accuracy</span>
-                        <span className="text-gray-300 font-semibold">
-                          {(progress.metrics.train_accuracy * 100).toFixed(1)}%
-                        </span>
-                      </div>
-
-                      {/* Training Time */}
-                      {progress.metrics.training_time_seconds && (
-                        <div className="flex flex-col">
-                          <span className="text-gray-500 mb-1">Training Time</span>
-                          <span className="text-gray-300 font-semibold">
-                            {progress.metrics.training_time_seconds.toFixed(2)}s
-                          </span>
-                        </div>
-                      )}
                     </div>
                   </div>
                 )}

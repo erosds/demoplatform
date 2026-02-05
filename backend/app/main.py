@@ -80,46 +80,39 @@ async def train_models(websocket: WebSocket):
             "message": "Preparing dataset..."
         }))
         
-        # FIX: prepare_data ora restituisce 5 valori (incluso task_type)
-        X_train, X_test, y_train, y_test, task_type = ml_service.prepare_data(
+        X_train, X_test, y_train, y_test = ml_service.prepare_data(
             dataset, test_size, random_state
         )
         
-        # Invia info sul dataset preparato
-        await websocket.send_text(json.dumps({
-            "status": "data_prepared",
-            "task_type": task_type,
-            "n_train_samples": len(X_train),
-            "n_test_samples": len(X_test),
-            "message": f"Dataset prepared ({task_type}). Starting training..."
-        }))
-        
-        # Allena ogni modello
+        # Allena ogni modello con progresso individuale
         total_models = len(models)
         for idx, model_name in enumerate(models):
-            await websocket.send_text(json.dumps({
-                "status": "training",
-                "model": model_name,
-                "progress": (idx / total_models) * 100,
-                "message": f"Training {model_name}..."
-            }))
+            # Simula progress progressivo per ogni modello (0-100%)
+            steps = 20  # Numero di step di progresso
+            metrics = None
             
-            # Training del modello
-            # train_model ora rileva automaticamente il task_type
-            metrics = ml_service.train_model(
-                dataset, model_name, X_train, y_train, X_test, y_test
-            )
+            for step in range(steps + 1):
+                progress_value = (step / steps) * 100
+                
+                # Esegui il training all'80% del progresso
+                if step == int(steps * 0.8) and metrics is None:
+                    metrics = ml_service.train_model(
+                        dataset, model_name, X_train, y_train, X_test, y_test
+                    )
+                
+                await websocket.send_text(json.dumps({
+                    "status": "training" if step < steps else "completed",
+                    "model": model_name,
+                    "progress": progress_value,
+                    "metrics": metrics if step == steps else None,
+                    "message": f"Training {model_name}... {progress_value:.0f}%"
+                }))
+                
+                # Pausa per animazione smooth
+                await asyncio.sleep(0.08 if step < steps * 0.8 else 0.05)
             
-            await websocket.send_text(json.dumps({
-                "status": "completed",
-                "model": model_name,
-                "progress": ((idx + 1) / total_models) * 100,
-                "metrics": metrics,
-                "message": f"{model_name} training completed"
-            }))
-            
-            # Pausa per visualizzazione smooth
-            await asyncio.sleep(0.5)
+            # Pausa tra modelli
+            await asyncio.sleep(0.2)
         
         # Training completato
         await websocket.send_text(json.dumps({

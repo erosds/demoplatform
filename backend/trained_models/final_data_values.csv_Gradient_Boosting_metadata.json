@@ -11,7 +11,7 @@
     "train_accuracy": 0.9810361923648984,
     "train_r2": 0.9172554976250582,
     "overfit_gap": 0.002344418331201581,
-    "training_time_seconds": 13.74,
+    "training_time_seconds": 12.61,
     "n_train_samples": 8068,
     "n_test_samples": 2018,
     "cv_score": null,
@@ -23,5 +23,5 @@
     }
   },
   "feature_count": 42,
-  "trained_at": "2026-02-05 16:15:00"
+  "trained_at": "2026-02-05 16:21:58"
 }
