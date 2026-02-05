@@ -1,1 +1,27 @@
-{"dataset": "final_data_values.csv", "model_name": "Gradient Boosting", "metrics": {"accuracy": 0.9786917740336968, "precision": 0.9787076703204576, "recall": 0.9786917740336968, "f1_score": 0.9786404232456597}, "feature_count": 42}
+{
+  "dataset": "final_data_values.csv",
+  "model_name": "Gradient Boosting",
+  "task_type": "classification",
+  "metrics": {
+    "accuracy": 0.9786917740336968,
+    "precision": 0.9787076703204576,
+    "recall": 0.9786917740336968,
+    "f1_score": 0.9786404232456597,
+    "r2_score": 0.9070344975358903,
+    "train_accuracy": 0.9810361923648984,
+    "train_r2": 0.9172554976250582,
+    "overfit_gap": 0.002344418331201581,
+    "training_time_seconds": 13.74,
+    "n_train_samples": 8068,
+    "n_test_samples": 2018,
+    "cv_score": null,
+    "parameters": {
+      "n_estimators": 100,
+      "learning_rate": 0.1,
+      "max_depth": 3,
+      "random_state": 42
+    }
+  },
+  "feature_count": 42,
+  "trained_at": "2026-02-05 16:15:00"
+}

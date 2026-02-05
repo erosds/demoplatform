@@ -96,7 +96,7 @@ const TrainingView = ({ dataset, selectedModels, onTrainingComplete }) => {
 
       {/* Progress per ogni modello */}
       {selectedModels.length > 0 && (
-        <div className="w-full max-w-4xl space-y-4">
+        <div className="w-full max-w-5xl space-y-4">
           {selectedModels.map((modelName) => {
             const progress = trainingProgress[modelName];
             const isCompleted = completedModels.includes(modelName);
@@ -124,9 +124,9 @@ const TrainingView = ({ dataset, selectedModels, onTrainingComplete }) => {
                   />
                 </div>
 
-                {/* Metrics */}
+                {/* Metrics - AGGIORNATO: 5 colonne con R² */}
                 {progress?.metrics && (
-                  <div className="grid grid-cols-4 gap-4 mt-4">
+                  <div className="grid grid-cols-5 gap-4 mt-4">
                     <div className="text-center">
                       <div className="text-2xl font-bold text-purple-400">
                         {(progress.metrics.accuracy * 100).toFixed(1)}%
@@ -153,6 +153,51 @@ const TrainingView = ({ dataset, selectedModels, onTrainingComplete }) => {
                         {(progress.metrics.f1_score * 100).toFixed(1)}%
                       </div>
                       <div className="text-xs text-gray-500 mt-1">F1-Score</div>
+                    </div>
+                    
+                    {/* NUOVA COLONNA: R² Score */}
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-emerald-400">
+                        {(progress.metrics.r2_score * 100).toFixed(1)}%
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">R² Score</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* SEZIONE AGGIUNTIVA: Metriche avanzate */}
+                {progress?.metrics && (
+                  <div className="mt-6 pt-4 border-t border-gray-800">
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      {/* Overfit Gap */}
+                      <div className="flex flex-col">
+                        <span className="text-gray-500 mb-1">Overfit Gap</span>
+                        <span className={`font-semibold ${
+                          progress.metrics.overfit_gap < 0.02 ? 'text-green-400' :
+                          progress.metrics.overfit_gap < 0.05 ? 'text-yellow-400' :
+                          'text-red-400'
+                        }`}>
+                          {(progress.metrics.overfit_gap * 100).toFixed(2)}%
+                        </span>
+                      </div>
+
+                      {/* Training Accuracy */}
+                      <div className="flex flex-col">
+                        <span className="text-gray-500 mb-1">Train Accuracy</span>
+                        <span className="text-gray-300 font-semibold">
+                          {(progress.metrics.train_accuracy * 100).toFixed(1)}%
+                        </span>
+                      </div>
+
+                      {/* Training Time */}
+                      {progress.metrics.training_time_seconds && (
+                        <div className="flex flex-col">
+                          <span className="text-gray-500 mb-1">Training Time</span>
+                          <span className="text-gray-300 font-semibold">
+                            {progress.metrics.training_time_seconds.toFixed(2)}s
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

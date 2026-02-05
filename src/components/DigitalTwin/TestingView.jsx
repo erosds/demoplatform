@@ -86,8 +86,8 @@ const TestingView = ({ dataset, trainedModels }) => {
 
       {!loading && metrics && predictions && (
         <>
-          {/* Metrics */}
-          <div className="grid grid-cols-4 gap-4 mb-6">
+          {/* Metrics - AGGIORNATO: 5 colonne con R² */}
+          <div className="grid grid-cols-5 gap-4 mb-6">
             <div className="bg-[#1a1a1a] rounded-xl p-4 border border-gray-900 text-center">
               <div className="text-3xl font-bold text-green-400">
                 {(metrics.accuracy * 100).toFixed(1)}%
@@ -114,6 +114,14 @@ const TestingView = ({ dataset, trainedModels }) => {
                 {(metrics.f1_score * 100).toFixed(1)}%
               </div>
               <div className="text-xs text-gray-500 mt-2">F1-Score</div>
+            </div>
+
+            {/* NUOVA COLONNA: R² Score */}
+            <div className="bg-[#1a1a1a] rounded-xl p-4 border border-gray-900 text-center">
+              <div className="text-3xl font-bold text-blue-400">
+                {(metrics.r2_score * 100).toFixed(1)}%
+              </div>
+              <div className="text-xs text-gray-500 mt-2">R² Score</div>
             </div>
           </div>
 
@@ -153,13 +161,19 @@ const TestingView = ({ dataset, trainedModels }) => {
                         {pred.predicted_value}
                       </td>
                       <td className="px-4 py-3 text-center">
-                        {pred.correct ? (
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-500/20 text-green-400">
-                            ✓ Correct
-                          </span>
+                        {pred.correct !== null ? (
+                          pred.correct ? (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-500/20 text-green-400">
+                              ✓ Correct
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-red-500/20 text-red-400">
+                              ✗ Wrong
+                            </span>
+                          )
                         ) : (
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-red-500/20 text-red-400">
-                            ✗ Wrong
+                          <span className="text-xs text-gray-500">
+                            Error: {pred.error?.toFixed(3)}
                           </span>
                         )}
                       </td>

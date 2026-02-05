@@ -80,9 +80,19 @@ async def train_models(websocket: WebSocket):
             "message": "Preparing dataset..."
         }))
         
-        X_train, X_test, y_train, y_test = ml_service.prepare_data(
+        # FIX: prepare_data ora restituisce 5 valori (incluso task_type)
+        X_train, X_test, y_train, y_test, task_type = ml_service.prepare_data(
             dataset, test_size, random_state
         )
+        
+        # Invia info sul dataset preparato
+        await websocket.send_text(json.dumps({
+            "status": "data_prepared",
+            "task_type": task_type,
+            "n_train_samples": len(X_train),
+            "n_test_samples": len(X_test),
+            "message": f"Dataset prepared ({task_type}). Starting training..."
+        }))
         
         # Allena ogni modello
         total_models = len(models)
@@ -94,8 +104,8 @@ async def train_models(websocket: WebSocket):
                 "message": f"Training {model_name}..."
             }))
             
-            # Simula progress durante training (in realtà scikit-learn non ha callback nativi)
-            # Per ora facciamo training diretto
+            # Training del modello
+            # train_model ora rileva automaticamente il task_type
             metrics = ml_service.train_model(
                 dataset, model_name, X_train, y_train, X_test, y_test
             )
