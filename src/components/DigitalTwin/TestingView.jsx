@@ -96,7 +96,7 @@ const TestingView = ({ dataset, trainedModels }) => {
         {!loading && metrics && predictions && (
           <>
             {/* Metriche — dentro la card, sopra la tabella */}
-            <div className={`grid ${hasR2 ? 'grid-cols-5' : 'grid-cols-4'} gap-6 mb-6`}>
+            <div className={`grid ${hasR2 ? 'grid-cols-5' : 'grid-cols-4'} gap-6 mb-3`}>
               <div className="text-center">
                 <div className="text-4xl font-bold bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
                   {(metrics.accuracy * 100).toFixed(1)}%
@@ -136,65 +136,67 @@ const TestingView = ({ dataset, trainedModels }) => {
             </div>
 
             {/* Tabella risultati */}
-            <div className="pt-6 mt-6 flex-1 overflow-auto rounded">
-              <h4 className="text-white font-semibold mb-3">Preview</h4>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-[#0a0a0a]">
-                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase whitespace-nowrap text-gray-400">
-                      Sample ID
-                    </th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase whitespace-nowrap text-gray-400">
-                      True Value
-                    </th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase whitespace-nowrap text-cyan-400 bg-cyan-600/10">
-                      Predicted
-                    </th>
-                    <th className="px-3 py-2 text-center text-xs font-semibold uppercase whitespace-nowrap text-gray-400">
-                      Result
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {predictions.slice(0, displayedRows).map((pred, rowIdx) => (
-                    <tr
-                      key={pred.sample_id}
-                      className={`${rowIdx % 2 === 0 ? "bg-[#1a1a1a]" : "bg-[#141414]"} transition-colors`}
-                    >
-                      <td className="px-3 py-2 whitespace-nowrap font-mono text-xs text-gray-300">
-                        {pred.sample_id}
-                      </td>
-
-                      <td className="px-3 py-2 whitespace-nowrap font-mono text-xs text-white font-semibold">
-                        {pred.true_value}
-                      </td>
-
-                      <td className="px-3 py-2 whitespace-nowrap font-mono text-xs text-cyan-300 font-semibold bg-cyan-600/5">
-                        {pred.predicted_value}
-                      </td>
-
-                      <td className="px-3 py-2 whitespace-nowrap text-center">
-                        {pred.correct !== null ? (
-                          pred.correct ? (
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-500/20 text-green-400">
-                              ✓ Correct
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-red-500/20 text-red-400">
-                              ✗ Wrong
-                            </span>
-                          )
-                        ) : (
-                          <span className="text-xs text-gray-500">
-                            Error: {pred.error?.toFixed(3)}
-                          </span>
-                        )}
-                      </td>
+            <div className="pt-6 mt-3 flex-1 overflow-hidden rounded">
+              <h4 className="text-white font-semibold mb-3">Results</h4>
+              <div className="h-full overflow-auto rounded">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-[#0a0a0a]">
+                      <th className="px-3 py-2 text-left text-xs font-semibold uppercase whitespace-nowrap text-gray-400">
+                        Sample ID
+                      </th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold uppercase whitespace-nowrap text-gray-400">
+                        True Value
+                      </th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold uppercase whitespace-nowrap text-cyan-400 bg-cyan-600/10">
+                        Predicted
+                      </th>
+                      <th className="px-3 py-2 text-center text-xs font-semibold uppercase whitespace-nowrap text-gray-400">
+                        Result
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+
+                  <tbody>
+                    {predictions.slice(0, displayedRows).map((pred, rowIdx) => (
+                      <tr
+                        key={pred.sample_id}
+                        className={`${rowIdx % 2 === 0 ? "bg-[#1a1a1a]" : "bg-[#141414]"} transition-colors`}
+                      >
+                        <td className="px-3 py-2 whitespace-nowrap font-mono text-xs text-gray-300">
+                          {pred.sample_id}
+                        </td>
+
+                        <td className="px-3 py-2 whitespace-nowrap font-mono text-xs text-white font-semibold">
+                          {pred.true_value}
+                        </td>
+
+                        <td className="px-3 py-2 whitespace-nowrap font-mono text-xs text-cyan-300 font-semibold bg-cyan-600/5">
+                          {pred.predicted_value}
+                        </td>
+
+                        <td className="px-3 py-2 whitespace-nowrap text-center">
+                          {pred.correct !== null ? (
+                            pred.correct ? (
+                              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-500/20 text-green-400">
+                                ✓ Correct
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-red-500/20 text-red-400">
+                                ✗ Wrong
+                              </span>
+                            )
+                          ) : (
+                            <span className="text-xs text-gray-500">
+                              Error: {pred.error?.toFixed(3)}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             {/* Load more */}
