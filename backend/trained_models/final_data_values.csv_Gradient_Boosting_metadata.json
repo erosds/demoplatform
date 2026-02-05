@@ -1,0 +1,1 @@
+{"dataset": "final_data_values.csv", "model_name": "Gradient Boosting", "metrics": {"accuracy": 0.9786917740336968, "precision": 0.9787076703204576, "recall": 0.9786917740336968, "f1_score": 0.9786404232456597}, "feature_count": 42}

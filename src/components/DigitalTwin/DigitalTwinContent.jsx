@@ -1,0 +1,85 @@
+import React, { useState } from "react";
+import DatasetSelector from "./DatasetSelector";
+import ModelSelector from "./ModelSelector";
+import TrainingView from "./TrainingView";
+import TestingView from "./TestingView";
+import { getAnimationProgress } from "../../utils/animationConfig";
+
+const DigitalTwinContent = ({ activeIndex, scrollIndex, totalSections }) => {
+  const [selectedDataset, setSelectedDataset] = useState(null);
+  const [selectedModels, setSelectedModels] = useState([]);
+  const [isTrainingComplete, setIsTrainingComplete] = useState(false);
+
+  const { currentOpacity } = getAnimationProgress(
+    scrollIndex,
+    activeIndex,
+    totalSections
+  );
+
+  const toggleModel = (modelName) => {
+    setSelectedModels(prev =>
+      prev.includes(modelName)
+        ? prev.filter(m => m !== modelName)
+        : [...prev, modelName]
+    );
+    setIsTrainingComplete(false); // Reset training quando cambi modelli
+  };
+
+  // Determina quale contenuto mostrare
+  let content = null;
+  let contentOpacity = 0;
+
+  if (activeIndex === 0) {
+    content = (
+      <DatasetSelector
+        onSelect={setSelectedDataset}
+        selectedDataset={selectedDataset}
+      />
+    );
+    contentOpacity = currentOpacity;
+  } else if (activeIndex === 1) {
+    content = (
+      <ModelSelector
+        selectedModels={selectedModels}
+        onToggle={toggleModel}
+        canProceed={!!selectedDataset}
+      />
+    );
+    contentOpacity = currentOpacity;
+  } else if (activeIndex === 2) {
+    content = (
+      <TrainingView
+        dataset={selectedDataset}
+        selectedModels={selectedModels}
+        onTrainingComplete={setIsTrainingComplete}
+      />
+    );
+    contentOpacity = currentOpacity;
+  } else if (activeIndex === 3) {
+    content = (
+      <TestingView
+        dataset={selectedDataset}
+        trainedModels={isTrainingComplete ? selectedModels : []}
+      />
+    );
+    contentOpacity = currentOpacity;
+  }
+
+  if (contentOpacity <= 0.01) return null;
+
+  return (
+    <div
+      className="absolute inset-0 pointer-events-none"
+      style={{
+        opacity: contentOpacity,
+        willChange: "opacity",
+      }}
+    >
+      <div className="absolute inset-0 pointer-events-auto">
+        {content}
+      </div>
+    </div>
+  );
+};
+
+export default DigitalTwinContent;

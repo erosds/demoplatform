@@ -1,0 +1,1 @@
+{"dataset": "final_data_values.csv", "model_name": "AdaBoost", "metrics": {"accuracy": 0.9747274529236868, "precision": 0.974930548502968, "recall": 0.9747274529236868, "f1_score": 0.9746063921238861}, "feature_count": 42}
