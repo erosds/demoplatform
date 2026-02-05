@@ -8,6 +8,7 @@ export default function TitleDisplay({
   sections = [],
   scrollIndex = 0,
   activeIndex = 0,
+  showBackButton = false,
 }) {
   const { clamp, easeInOutCubic, colorSwitchStart, colorSwitchEnd } =
     ANIMATION_CONFIG;
@@ -23,7 +24,7 @@ export default function TitleDisplay({
   const { direction, eased, exitProgressEased } = getAnimationProgress(
     scrollIndex,
     activeIndex,
-    sections.length
+    sections.length,
   );
 
   const nextTranslateVW = enterOffsetVW * (1 - eased) * direction;
@@ -33,7 +34,7 @@ export default function TitleDisplay({
   const colorSwitchProgress = clamp(
     (absP - colorSwitchStart) / (colorSwitchEnd - colorSwitchStart),
     0,
-    1
+    1,
   );
   const colorEased = easeInOutCubic(colorSwitchProgress);
 
@@ -54,7 +55,9 @@ export default function TitleDisplay({
   const next = sections[nextIndex] || null;
 
   return (
-    <div className="fixed top-10 left-0 right-0 z-50 px-12 pointer-events-none">
+    <div
+      className={`fixed top-10 left-0 right-0 z-50 pr-12 pointer-events-none ${showBackButton ? "pl-24" : "pl-12"}`}
+    >
       <div
         className="max-w-screen-2xl mx-auto relative h-28 overflow-visible"
         id="title-container"

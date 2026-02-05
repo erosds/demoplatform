@@ -74,7 +74,7 @@ const TestingView = ({ dataset, trainedModels }) => {
               px-6 py-3 rounded-lg text-sm font-semibold transition-all
               ${selectedModel === model
                 ? 'bg-gradient-to-r from-green-600 to-teal-600 text-white'
-                : 'bg-[#1a1a1a] text-gray-400 hover:text-white border border-gray-800'
+                : 'bg-[#1a1a1a] text-gray-400 hover:text-white'
               }
             `}
           >
@@ -93,28 +93,28 @@ const TestingView = ({ dataset, trainedModels }) => {
         <>
           {/* Metrics - Mostra 4 o 5 colonne in base a presenza R² */}
           <div className={`grid ${hasR2 ? 'grid-cols-5' : 'grid-cols-4'} gap-3 mb-4`}>
-            <div className="bg-[#1a1a1a] rounded-xl p-3 border border-gray-900 text-center">
+            <div className="bg-[#1a1a1a] rounded p-3 text-center">
               <div className="text-2xl font-bold text-green-400">
                 {(metrics.accuracy * 100).toFixed(1)}%
               </div>
               <div className="text-xs text-gray-500 mt-1">Accuracy</div>
             </div>
 
-            <div className="bg-[#1a1a1a] rounded-xl p-3 border border-gray-900 text-center">
+            <div className="bg-[#1a1a1a] rounded p-3 text-center">
               <div className="text-2xl font-bold text-emerald-400">
                 {(metrics.precision * 100).toFixed(1)}%
               </div>
               <div className="text-xs text-gray-500 mt-1">Precision</div>
             </div>
 
-            <div className="bg-[#1a1a1a] rounded-xl p-3 border border-gray-900 text-center">
+            <div className="bg-[#1a1a1a] rounded p-3 text-center">
               <div className="text-2xl font-bold text-teal-400">
                 {(metrics.recall * 100).toFixed(1)}%
               </div>
               <div className="text-xs text-gray-500 mt-1">Recall</div>
             </div>
 
-            <div className="bg-[#1a1a1a] rounded-xl p-3 border border-gray-900 text-center">
+            <div className="bg-[#1a1a1a] rounded p-3 text-center">
               <div className="text-2xl font-bold text-cyan-400">
                 {(metrics.f1_score * 100).toFixed(1)}%
               </div>
@@ -123,7 +123,7 @@ const TestingView = ({ dataset, trainedModels }) => {
 
             {/* Mostra R² solo se disponibile (regressione) */}
             {hasR2 && (
-              <div className="bg-[#1a1a1a] rounded-xl p-3 border border-gray-900 text-center">
+              <div className="bg-[#1a1a1a] rounded p-3 text-center">
                 <div className="text-2xl font-bold text-blue-400">
                   {(metrics.r2_score * 100).toFixed(1)}%
                 </div>
@@ -133,7 +133,7 @@ const TestingView = ({ dataset, trainedModels }) => {
           </div>
 
           {/* Results table */}
-          <div className="flex-1 bg-[#1a1a1a] rounded-xl border border-gray-900 overflow-hidden flex flex-col">
+          <div className="flex-1 bg-[#1a1a1a] rounded overflow-hidden flex flex-col">
             <div className="overflow-auto flex-1">
               <table className="w-full">
                 <thead className="bg-[#0a0a0a] sticky top-0">
@@ -156,7 +156,7 @@ const TestingView = ({ dataset, trainedModels }) => {
                   {predictions.slice(0, displayedRows).map((pred) => (
                     <tr
                       key={pred.sample_id}
-                      className="border-b border-gray-800 hover:bg-[#0a0a0a] transition-colors"
+                      className="hover:bg-[#0a0a0a] transition-colors"
                     >
                       <td className="px-3 py-2 text-sm text-gray-300 font-mono">
                         {pred.sample_id}
@@ -192,7 +192,7 @@ const TestingView = ({ dataset, trainedModels }) => {
 
             {/* Load more button */}
             {displayedRows < predictions.length && (
-              <div className="p-4 border-t border-gray-800 text-center">
+              <div className="p-4 text-center">
                 <button
                   onClick={loadMore}
                   className="px-6 py-2 bg-gradient-to-r from-green-600 to-teal-600 rounded-lg text-white text-sm font-semibold hover:shadow-lg transition-all"

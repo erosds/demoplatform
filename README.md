@@ -1,69 +1,76 @@
-# ProPresent - Presentazione Modulare
+# ProPresent
 
-Questo progetto è una presentazione moderna con scroll orizzontale, costruita con React e Tailwind CSS.
+Interactive demo platform built with React + Tailwind CSS, featuring horizontal scroll navigation and animated transitions.
 
-## Struttura del Progetto
+## Workflows
+
+- **Materials Informatics** — Generate, predict, select and validate molecular candidates with interactive SMILES rendering
+- **Digital Twin & ML** — Select datasets, train classification models (AdaBoost, Gradient Boosting, Random Forest, Decision Tree) via WebSocket, and evaluate predictions in real-time
+- **Food & Beverage** — Coming soon
+
+## Stack
+
+| Frontend | Backend |
+|---|---|
+| React 19, Tailwind CSS 3 | FastAPI, scikit-learn |
+| smiles-drawer | WebSocket (live training) |
+
+## Quick Start
+
+```bash
+# Frontend
+npm install && npm start
+
+# Backend
+cd backend
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+# oppure 
+python -m app.main
+```
+
+Frontend: `http://localhost:3000` · Backend: `http://localhost:8000`
+
+## Project Structure
 
 ```
 src/
 ├── components/
-│   ├── Section.js              # Componente per le singole sezioni
-│   ├── TitleDisplay.js         # Gestisce la visualizzazione dei titoli con transizioni
-│   ├── NavigationDots.js       # Indicatori di navigazione (pallini)
-│   └── NavigationArrows.js     # Frecce di navigazione laterali
+│   ├── HomePage.jsx              # Workflow selector
+│   ├── TitleDisplay.js           # Animated title transitions
+│   ├── InteractiveContent.js     # Materials informatics logic
+│   ├── MoleculeRenderer.js       # SMILES → canvas rendering
+│   ├── IndustriesContent.jsx     # Industry cards
+│   ├── ImpactMetrics.jsx         # Animated KPI counters
+│   ├── NavigationDots.js         # Dot indicators
+│   ├── NavigationArrows.js       # Arrow navigation
+│   └── DigitalTwin/
+│       ├── DigitalTwinContent.jsx
+│       ├── DatasetSelector.jsx
+│       ├── ModelSelector.jsx
+│       ├── TrainingView.jsx      # WebSocket training with live progress
+│       └── TestingView.jsx       # Predictions table + metrics
 ├── data/
-│   └── sectionsData.js         # Dati delle sezioni
-├── App.js                      # Componente principale
-├── index.js                    # Entry point
-└── index.css                   # Stili globali con Tailwind
+│   ├── workflowsData.js          # Workflow/section definitions
+│   ├── sectionsData.js
+│   └── moleculesData.js          # SMILES library
+├── utils/
+│   └── animationConfig.js        # Shared easing & animation helpers
+└── App.js                        # Router + scroll engine
 
-public/
-└── index.html                  # HTML template
+backend/
+├── app/
+│   ├── main.py                   # FastAPI + WebSocket endpoints
+│   ├── ml_service.py             # Train/predict logic
+│   └── models.py                 # Pydantic schemas
+├── datasets/                     # CSV files
+└── trained_models/               # Saved .joblib + metadata
 ```
 
-## Caratteristiche
+## Controls
 
-- ✨ **Architettura Modulare**: Codice ben organizzato in componenti riutilizzabili
-- 🎨 **Design Moderno**: Gradienti animati e transizioni fluide
-- 📱 **Scroll Orizzontale**: Navigazione intuitiva tra le sezioni
-- 🎯 **Transizioni Titoli**: I titoli si animano e cambiano posizione durante lo scroll
-- ⚡ **Performance Ottimizzate**: React hooks e gestione efficiente dello stato
-
-## Componenti
-
-### Section.js
-Gestisce la visualizzazione di una singola sezione con il suo contenuto.
-
-### TitleDisplay.js
-Mostra il titolo corrente (a sinistra, colorato) e il prossimo titolo (a destra, opaco).
-Durante lo scroll, il prossimo titolo si sposta a sinistra e si colora.
-
-### NavigationDots.js
-Indicatori visivi nella parte bassa dello schermo per mostrare la sezione attiva.
-
-### NavigationArrows.js
-Frecce laterali per navigare tra le sezioni.
-
-## Scripts Disponibili
-
-### `npm start`
-Avvia l'app in modalità development su [http://localhost:3000](http://localhost:3000)
-
-### `npm run build`
-Crea una build di produzione nella cartella `build`
-
-## Personalizzazione
-
-Per modificare le sezioni, edita il file `src/data/sectionsData.js`:
-
-```javascript
-export const sectionsData = [
-  {
-    id: 0,
-    title: 'Il tuo titolo',
-    subtitle: 'Il tuo sottotitolo',
-    gradient: 'from-purple-600 via-pink-600 to-red-600'
-  },
-  // Aggiungi altre sezioni...
-];
-```
+| Key | Action |
+|---|---|
+| ← → | Navigate sections |
+| Esc | Back to home |
+| Click dots/arrows | Jump to section |

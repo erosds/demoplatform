@@ -99,7 +99,7 @@ const TrainingView = ({ dataset, selectedModels, onTrainingComplete }) => {
             onClick={startTraining}
             disabled={!canTrain}
             className={`
-              px-10 py-4 rounded-xl text-white text-xl font-semibold
+              px-10 py-4 rounded text-white text-xl font-semibold
               bg-gradient-to-r from-purple-600 via-pink-600 to-red-600
               hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-300
               ${!canTrain ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}
@@ -123,7 +123,7 @@ const TrainingView = ({ dataset, selectedModels, onTrainingComplete }) => {
             return (
               <div
                 key={modelName}
-                className="bg-[#1a1a1a] rounded-xl p-4 border border-gray-900"
+                className="bg-[#1a1a1a] rounded p-4 border border-gray-900"
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">

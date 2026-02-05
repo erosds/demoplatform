@@ -36,10 +36,10 @@ const ModelSelector = ({ selectedModels, onToggle, canProceed }) => {
               onClick={() => onToggle(model.name)}
               disabled={!canProceed}
               className={`
-                relative p-8 rounded-2xl border-2 transition-all duration-300
+                relative p-8 rounded transition-all duration-300
                 ${isSelected 
-                  ? `border-transparent bg-gradient-to-r ${model.gradient}` 
-                  : 'border-gray-800 bg-[#1a1a1a] hover:border-gray-700'
+                  ? `bg-gradient-to-r ${model.gradient}` 
+                  : 'bg-[#1a1a1a] hover:scale-105'
                 }
                 ${!canProceed ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
               `}

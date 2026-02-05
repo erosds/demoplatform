@@ -9,7 +9,7 @@ import DigitalTwinContent from "./components/DigitalTwin/DigitalTwinContent";
 import { workflows } from "./data/workflowsData";
 
 export default function App() {
-  const [currentWorkflow, setCurrentWorkflow] = useState('home');
+  const [currentWorkflow, setCurrentWorkflow] = useState("home");
   const [activeIndex, setActiveIndex] = useState(0);
   const [scrollIndex, setScrollIndex] = useState(0);
   const containerRef = useRef(null);
@@ -28,7 +28,9 @@ export default function App() {
     rafRef.current = requestAnimationFrame(() => {
       setScrollIndex(exactIndex);
       setActiveIndex(
-        Math.round(Math.max(0, Math.min(currentSections.length - 1, exactIndex)))
+        Math.round(
+          Math.max(0, Math.min(currentSections.length - 1, exactIndex)),
+        ),
       );
     });
   }, [currentSections.length]);
@@ -46,8 +48,8 @@ export default function App() {
     window.addEventListener("resize", onResize);
 
     const onKey = (e) => {
-      if (currentWorkflow === 'home') return; // Disabilita navigazione keyboard su home
-      
+      if (currentWorkflow === "home") return; // Disabilita navigazione keyboard su home
+
       if (e.key === "ArrowRight") {
         scrollToSection(Math.min(currentSections.length - 1, activeIndex + 1));
       } else if (e.key === "ArrowLeft") {
@@ -103,7 +105,7 @@ export default function App() {
   };
 
   const handleBackToHome = () => {
-    setCurrentWorkflow('home');
+    setCurrentWorkflow("home");
     setActiveIndex(0);
     setScrollIndex(0);
     if (containerRef.current) {
@@ -111,7 +113,7 @@ export default function App() {
     }
   };
 
-  const isHome = currentWorkflow === 'home';
+  const isHome = currentWorkflow === "home";
 
   return (
     <div className="h-screen w-screen bg-[#111111] text-white overflow-hidden relative">
@@ -119,11 +121,21 @@ export default function App() {
       {!isHome && (
         <button
           onClick={handleBackToHome}
-          className="fixed top-8 left-8 z-50 w-12 h-12 rounded-full bg-white/10 backdrop-blur-xl flex items-center justify-center hover:bg-white/20 transition-all"
+          className="fixed top-8 left-8 z-50 w-12 h-12 rounded-full bg-white/5 backdrop-blur-xl flex items-center justify-center hover:bg-white/10 transition-all"
           aria-label="Back to home"
         >
-          <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          <svg
+            className="w-6 h-6 text-white"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M10 19l-7-7m0 0l7-7m-7 7h18"
+            />
           </svg>
         </button>
       )}
@@ -132,6 +144,7 @@ export default function App() {
         sections={currentSections}
         scrollIndex={scrollIndex}
         activeIndex={activeIndex}
+        showBackButton={!isHome}
       />
 
       <div
@@ -163,8 +176,8 @@ export default function App() {
 
       {/* Content specifico per workflow */}
       {isHome && <HomePage onSelectWorkflow={handleSelectWorkflow} />}
-      
-      {currentWorkflow === 'materialsInformatics' && (
+
+      {currentWorkflow === "materialsInformatics" && (
         <InteractiveContent
           activeIndex={activeIndex}
           scrollIndex={scrollIndex}
@@ -172,7 +185,7 @@ export default function App() {
         />
       )}
 
-      {currentWorkflow === 'digitalTwin' && (
+      {currentWorkflow === "digitalTwin" && (
         <DigitalTwinContent
           activeIndex={activeIndex}
           scrollIndex={scrollIndex}
