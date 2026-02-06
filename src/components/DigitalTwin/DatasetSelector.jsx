@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 const API_URL = "http://localhost:8000";
 
 /* ------------------------------------------------------------------ */
-/*  Custom Dropdown                                                    */
+/* Custom Dropdown                                                    */
 /* ------------------------------------------------------------------ */
 const CustomDropdown = ({ options, value, onChange, placeholder, disabled }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -78,7 +78,7 @@ const CustomDropdown = ({ options, value, onChange, placeholder, disabled }) => 
 };
 
 /* ------------------------------------------------------------------ */
-/*  DatasetSelector                                                    */
+/* DatasetSelector                                                    */
 /* ------------------------------------------------------------------ */
 const DatasetSelector = ({ onSelect, selectedDataset }) => {
   const [datasets, setDatasets] = useState([]);
@@ -126,136 +126,128 @@ const DatasetSelector = ({ onSelect, selectedDataset }) => {
     );
   }
 
-  // Tutte le colonne per la preview (features + target)
-  const allColumns = datasetInfo
-    ? [...datasetInfo.features, datasetInfo.target]
-    : [];
+  const allColumns = datasetInfo ? [...datasetInfo.features, datasetInfo.target] : [];
+
+  // Determina se mostrare il contenuto (info o loading)
+  const hasContent = datasetInfo || loadingInfo;
 
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-6 px-8 pt-32">
-      {/* Dropdown — stessa larghezza max del blocco info */}
-      <div className="w-full max-w-4xl">
-        <CustomDropdown
-          options={datasets}
-          value={selectedDataset}
-          onChange={handleSelectDataset}
-          placeholder={datasets.length === 0 ? "No datasets available" : "Select a dataset"}
-          disabled={datasets.length === 0}
-        />
-      </div>
+    <div className="relative h-full w-full flex flex-col items-center justify-center overflow-y-auto no-scrollbar px-8">
 
-      {/* Shimmer loading */}
-      {loadingInfo && (
-        <div className="w-full max-w-4xl bg-[#1a1a1a] rounded p-8">
-          <div className="shimmer-effect h-40"></div>
+      {/* Wrapper centrale: dropdown + info */}
+      <div
+        className="w-full max-w-4xl flex flex-col items-center transition-all duration-1000 cubic-bezier(0.16, 1, 0.3, 1)"
+        style={{
+          // Sempre centrato verticalmente
+          transform: `translateY(0)`,
+        }}
+      >
+        <div className="w-full">
+          <CustomDropdown
+            options={datasets}
+            value={selectedDataset}
+            onChange={handleSelectDataset}
+            placeholder={datasets.length === 0 ? "No datasets available" : "Select a dataset"}
+            disabled={datasets.length === 0}
+          />
         </div>
-      )}
 
-      {/* Info dataset */}
-      {datasetInfo && !loadingInfo && (
-        <div className="w-full max-w-4xl bg-[#1a1a1a] rounded p-8">
-          {/* Metriche — 4 colonne */}
-          <div className="grid grid-cols-4 gap-6 mb-6">
-            <div className="text-center">
-              <div className="text-4xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
-                {datasetInfo.rows.toLocaleString()}
-              </div>
-              <div className="text-gray-400 text-sm mt-2">Samples</div>
-            </div>
-
-            <div className="text-center">
-              <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                {datasetInfo.features.length}
-              </div>
-              <div className="text-gray-400 text-sm mt-2">Features</div>
-            </div>
-
-            <div className="text-center">
-              <div className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                {Object.keys(datasetInfo.class_distribution).length}
-              </div>
-              <div className="text-gray-400 text-sm mt-2">Classes</div>
-            </div>
-
-            <div className="text-center">
-              <div className={`text-4xl font-bold ${datasetInfo.rows_with_nan > 0
-                  ? "bg-gradient-to-r from-orange-500 to-red-500"
-                  : "bg-gradient-to-r from-green-500 to-emerald-500"
-                } bg-clip-text text-transparent`}>
-                {datasetInfo.rows_with_nan.toLocaleString()}
-              </div>
-              <div className="text-gray-400 text-sm mt-2">Rows with NaN</div>
-            </div>
-          </div>
-
-          {/* Preview — prime 5 righe */}
-          {datasetInfo.preview && datasetInfo.preview.length > 0 && (
-            <div className="pt-6 mt-6">
-              <h4 className="text-white font-semibold mb-3">Preview</h4>
-              <div className="overflow-x-auto rounded">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-[#0a0a0a]">
-                      {allColumns.map((col) => (
-                        <th
-                          key={col}
-                          className={`px-3 py-2 text-left text-xs font-semibold uppercase whitespace-nowrap ${col === datasetInfo.target
-                              ? "text-cyan-400 bg-cyan-600/10"
-                              : "text-gray-400"
-                            }`}
-                        >
-                          {col}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {datasetInfo.preview.map((row, rowIdx) => (
-                      <tr
-                        key={rowIdx}
-                        className={`${rowIdx % 2 === 0 ? "bg-[#1a1a1a]" : "bg-[#141414]"} transition-colors`}
-                      >
-                        {allColumns.map((col) => {
-                          const val = row[col];
-                          const isTarget = col === datasetInfo.target;
-                          return (
-                            <td
-                              key={col}
-                              className={`px-3 py-2 whitespace-nowrap font-mono text-xs ${isTarget
-                                  ? "text-cyan-300 bg-cyan-600/5 font-semibold"
-                                  : "text-gray-300"
-                                }`}
-                            >
-                              {val === null || val === undefined ? "NaN" : String(val)}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+        {/* Contenitore info: mantiene le animazioni originali */}
+        <div
+          className={`w-full transition-all duration-700 delay-300 ${hasContent ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10 pointer-events-none"
+            }`}
+        >
+          {loadingInfo && (
+            <div className="w-full bg-[#1a1a1a] rounded p-8 mt-2">
+              <div className="shimmer-effect h-40"></div>
             </div>
           )}
 
-          {/* Class Distribution */}
-          <div className="pt-6">
-            <h4 className="text-white font-semibold mb-3">Class Distribution</h4>
-            <div className="flex flex-wrap gap-3">
-              {Object.entries(datasetInfo.class_distribution).map(([label, count]) => (
-                <div
-                  key={label}
-                  className="px-4 py-2 bg-[#0c0c0c] rounded"
-                >
-                  <span className="text-cyan-400 font-mono">{label}</span>
-                  <span className="text-gray-500 mx-2">:</span>
-                  <span className="text-white">{count}</span>
+          {datasetInfo && !loadingInfo && (
+            <div className="w-full bg-[#1a1a1a] rounded p-6 mt-2 shadow-2xl">
+              {/* Metriche */}
+              <div className="grid grid-cols-4 gap-6 mb-2">
+                <div className="text-center">
+                  <div className="text-4xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
+                    {datasetInfo.rows.toLocaleString()}
+                  </div>
+                  <div className="text-gray-400 text-sm mt-2">Samples</div>
                 </div>
-              ))}
+                <div className="text-center">
+                  <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                    {datasetInfo.features.length}
+                  </div>
+                  <div className="text-gray-400 text-sm mt-2">Features</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                    {Object.keys(datasetInfo.class_distribution).length}
+                  </div>
+                  <div className="text-gray-400 text-sm mt-2">Classes</div>
+                </div>
+                <div className="text-center">
+                  <div className={`text-4xl font-bold ${datasetInfo.rows_with_nan > 0
+                    ? "bg-gradient-to-r from-orange-500 to-red-500"
+                    : "bg-gradient-to-r from-green-500 to-emerald-500"
+                    } bg-clip-text text-transparent`}>
+                    {datasetInfo.rows_with_nan.toLocaleString()}
+                  </div>
+                  <div className="text-gray-400 text-sm mt-2">Rows with NaN</div>
+                </div>
+              </div>
+
+              {/* Preview */}
+              {datasetInfo.preview && datasetInfo.preview.length > 0 && (
+                <div className="pt-6 mt-2 overflow-x-auto rounded max-h-[400px]">
+                  <h4 className="text-white font-semibold mb-2">Preview</h4>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-[#0a0a0a]">
+                        {allColumns.map((col) => (
+                          <th
+                            key={col}
+                            className={`px-3 py-2 text-left text-xs font-semibold uppercase whitespace-nowrap ${col === datasetInfo.target ? "text-cyan-400 bg-cyan-600/10" : "text-gray-400"}`}
+                          >
+                            {col}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {datasetInfo.preview.map((row, rowIdx) => (
+                        <tr key={rowIdx} className={`${rowIdx % 2 === 0 ? "bg-[#1a1a1a]" : "bg-[#141414]"} transition-colors`}>
+                          {allColumns.map((col) => {
+                            const val = row[col];
+                            return (
+                              <td key={col} className={`px-3 py-2 whitespace-nowrap font-mono text-xs ${col === datasetInfo.target ? "text-cyan-300 bg-cyan-600/5 font-semibold" : "text-gray-300"}`}>
+                                {val === null || val === undefined ? "NaN" : String(val)}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Class Distribution */}
+              <div className="pt-6">
+                <h4 className="text-white font-semibold mb-2">Class Distribution</h4>
+                <div className="flex flex-wrap gap-3">
+                  {Object.entries(datasetInfo.class_distribution).map(([label, count]) => (
+                    <div key={label} className="px-4 py-2 bg-[#0c0c0c] rounded">
+                      <span className="text-cyan-400 font-mono">{label}</span>
+                      <span className="text-gray-500 mx-2">:</span>
+                      <span className="text-white">{count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };
