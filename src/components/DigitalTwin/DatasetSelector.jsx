@@ -80,11 +80,12 @@ const CustomDropdown = ({ options, value, onChange, placeholder, disabled }) => 
 /* ------------------------------------------------------------------ */
 /* DatasetSelector                                                    */
 /* ------------------------------------------------------------------ */
-const DatasetSelector = ({ onSelect, selectedDataset }) => {
+const DatasetSelector = ({ onSelect, selectedDataset, onColumnsChange }) => {
   const [datasets, setDatasets] = useState([]);
   const [datasetInfo, setDatasetInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadingInfo, setLoadingInfo] = useState(false);
+  const [excludedColumns, setExcludedColumns] = useState(new Set());
 
   useEffect(() => {
     fetchDatasets();
@@ -105,17 +106,33 @@ const DatasetSelector = ({ onSelect, selectedDataset }) => {
   const handleSelectDataset = async (filename) => {
     setLoadingInfo(true);
     setDatasetInfo(null);
+    setExcludedColumns(new Set());
 
     try {
       const response = await fetch(`${API_URL}/datasets/${filename}`);
       const info = await response.json();
       setDatasetInfo(info);
       onSelect(filename);
+      // Di default tutte le feature sono selezionate
+      if (onColumnsChange) onColumnsChange(info.features);
     } catch (error) {
       console.error("Error fetching dataset info:", error);
     } finally {
       setLoadingInfo(false);
     }
+  };
+
+  const toggleColumn = (col) => {
+    if (!datasetInfo || col === datasetInfo.target) return;
+    setExcludedColumns(prev => {
+      const next = new Set(prev);
+      if (next.has(col)) next.delete(col);
+      else next.add(col);
+      // Notifica il parent con le feature selezionate
+      const selected = datasetInfo.features.filter(f => !next.has(f));
+      if (onColumnsChange) onColumnsChange(selected);
+      return next;
+    });
   };
 
   if (loading) {
@@ -158,8 +175,19 @@ const DatasetSelector = ({ onSelect, selectedDataset }) => {
             }`}
         >
           {loadingInfo && (
-            <div className="w-full bg-[#1a1a1a] rounded p-8 mt-2">
-              <div className="shimmer-effect h-40"></div>
+            <div className="w-full bg-[#1a1a1a] rounded p-8 mt-2 flex items-center justify-center" style={{ minHeight: '160px' }}>
+              <div className="flex flex-col items-center gap-4">
+                <div
+                  className="w-10 h-10 rounded-full border-2 border-gray-700 border-t-cyan-500"
+                  style={{ animation: 'spin 0.8s linear infinite' }}
+                />
+                <span className="text-sm text-gray-400">Loading dataset...</span>
+              </div>
+              <style>{`
+                @keyframes spin {
+                  to { transform: rotate(360deg); }
+                }
+              `}</style>
             </div>
           )}
 
@@ -203,14 +231,25 @@ const DatasetSelector = ({ onSelect, selectedDataset }) => {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-[#0a0a0a]">
-                        {allColumns.map((col) => (
-                          <th
-                            key={col}
-                            className={`px-3 py-2 text-left text-xs font-semibold uppercase whitespace-nowrap ${col === datasetInfo.target ? "text-cyan-400 bg-cyan-600/10" : "text-gray-400"}`}
-                          >
-                            {col}
-                          </th>
-                        ))}
+                        {allColumns.map((col) => {
+                          const isTarget = col === datasetInfo.target;
+                          const isExcluded = excludedColumns.has(col);
+                          return (
+                            <th
+                              key={col}
+                              onClick={() => toggleColumn(col)}
+                              className={`px-3 py-2 text-left text-xs font-semibold uppercase whitespace-nowrap transition-colors duration-150 ${
+                                isTarget
+                                  ? "text-cyan-400 bg-cyan-600/10"
+                                  : isExcluded
+                                    ? "text-gray-600 cursor-pointer hover:text-gray-400"
+                                    : "text-gray-400 cursor-pointer hover:text-gray-200"
+                              }`}
+                            >
+                              {col}
+                            </th>
+                          );
+                        })}
                       </tr>
                     </thead>
                     <tbody>
@@ -218,8 +257,16 @@ const DatasetSelector = ({ onSelect, selectedDataset }) => {
                         <tr key={rowIdx} className={`${rowIdx % 2 === 0 ? "bg-[#1a1a1a]" : "bg-[#141414]"} transition-colors`}>
                           {allColumns.map((col) => {
                             const val = row[col];
+                            const isTarget = col === datasetInfo.target;
+                            const isExcluded = excludedColumns.has(col);
                             return (
-                              <td key={col} className={`px-3 py-2 whitespace-nowrap font-mono text-xs ${col === datasetInfo.target ? "text-cyan-300 bg-cyan-600/5 font-semibold" : "text-gray-300"}`}>
+                              <td key={col} className={`px-3 py-2 whitespace-nowrap font-mono text-xs transition-colors duration-150 ${
+                                isTarget
+                                  ? "text-cyan-300 bg-cyan-600/5 font-semibold"
+                                  : isExcluded
+                                    ? "text-gray-600"
+                                    : "text-gray-300"
+                              }`}>
                                 {val === null || val === undefined ? "NaN" : String(val)}
                               </td>
                             );

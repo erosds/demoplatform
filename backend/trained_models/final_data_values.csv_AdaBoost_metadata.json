@@ -9,14 +9,15 @@
     "f1_score": 0.9700883464385242,
     "r2_score": null,
     "train_r2": null,
+    "auc_roc": 0.9925401757017356,
     "train_accuracy": 0.9802925136341101,
     "overfit_gap": 0.010024921959184363,
-    "training_time_seconds": 1.912,
+    "training_time_seconds": 1.914,
     "n_train_samples": 8068,
     "n_test_samples": 2018
   },
   "feature_count": 42,
-  "trained_at": "2026-02-06 01:25:52",
+  "trained_at": "2026-02-06 11:27:53",
   "parameters": {
     "n_estimators": 100,
     "learning_rate": 1.0,

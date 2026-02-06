@@ -2,12 +2,13 @@ import React, { useState } from "react";
 import DatasetSelector from "./DatasetSelector";
 import ModelSelector from "./ModelSelector";
 import TrainingView from "./TrainingView";
-import TestingView from "./TestingView";
+import FeatureImportanceView from "./FeatureImportanceView";
 import { getAnimationProgress } from "../../utils/animationConfig";
 
 const DigitalTwinContent = ({ activeIndex, scrollIndex, totalSections }) => {
   const [selectedDataset, setSelectedDataset] = useState(null);
   const [selectedModels, setSelectedModels] = useState([]);
+  const [selectedFeatures, setSelectedFeatures] = useState(null);
   const [isTrainingComplete, setIsTrainingComplete] = useState(false);
 
   const { currentOpacity } = getAnimationProgress(
@@ -34,6 +35,7 @@ const DigitalTwinContent = ({ activeIndex, scrollIndex, totalSections }) => {
       <DatasetSelector
         onSelect={setSelectedDataset}
         selectedDataset={selectedDataset}
+        onColumnsChange={setSelectedFeatures}
       />
     );
     contentOpacity = currentOpacity;
@@ -51,13 +53,14 @@ const DigitalTwinContent = ({ activeIndex, scrollIndex, totalSections }) => {
       <TrainingView
         dataset={selectedDataset}
         selectedModels={selectedModels}
+        selectedFeatures={selectedFeatures}
         onTrainingComplete={setIsTrainingComplete}
       />
     );
     contentOpacity = currentOpacity;
   } else if (activeIndex === 3) {
     content = (
-      <TestingView
+      <FeatureImportanceView
         dataset={selectedDataset}
         trainedModels={isTrainingComplete ? selectedModels : []}
       />

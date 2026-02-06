@@ -87,13 +87,13 @@ export const workflows = {
       {
         id: 2,
         title: "train models",
-        subtitle: "Watch your models <strong>train in real-time</strong> with live metrics and progress tracking",
+        subtitle: "Watch your models <strong>train</strong>, evaluate their performance, and visualize predictions",
         gradient: "from-purple-600 via-pink-600 to-red-600",
       },
       {
         id: 3,
-        title: "evaluate performance",
-        subtitle: "Compare <strong>predictions vs actual values</strong> and analyze model performance metrics",
+        title: "feature importance",
+        subtitle: "Discover which <strong>sensors and variables</strong> influence model predictions the most",
         gradient: "from-green-600 via-emerald-600 to-teal-600",
       }
     ]

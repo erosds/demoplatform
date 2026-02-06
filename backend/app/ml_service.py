@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import AdaBoostClassifier, GradientBoostingClassifier, RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, r2_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, r2_score, roc_auc_score
 import joblib
 import os
 from pathlib import Path
@@ -110,16 +110,19 @@ class MLService:
         
         return info
     
-    def prepare_data(self, filename: str, test_size: float, random_state: int):
+    def prepare_data(self, filename: str, test_size: float, random_state: int, selected_features: list = None):
         """Prepara i dati per training e test"""
         if filename not in self.datasets_cache:
             self.load_dataset(filename)
-        
+
         df = self.datasets_cache[filename]["data"]
         target_col = df.columns[-1]
         task_type = self.datasets_cache[filename]["info"]["task_type"]
-        
-        X = df.iloc[:, :-1].values
+
+        if selected_features:
+            X = df[selected_features].values
+        else:
+            X = df.iloc[:, :-1].values
         y = df[target_col].values
         
         stratify = y if task_type == 'classification' else None
@@ -130,7 +133,7 @@ class MLService:
         
         return X_train, X_test, y_train, y_test
     
-    def train_model(self, dataset: str, model_name: str, X_train, y_train, X_test, y_test):
+    def train_model(self, dataset: str, model_name: str, X_train, y_train, X_test, y_test, selected_features=None):
         """Allena un singolo modello"""
         start_time = time.time()
         
@@ -167,6 +170,22 @@ class MLService:
             metrics["r2_score"] = None
             metrics["train_r2"] = None
         
+        # AUC-ROC (solo per classificazione)
+        if task_type != 'regression':
+            try:
+                if hasattr(model, 'predict_proba'):
+                    y_proba = model.predict_proba(X_test)
+                    if y_proba.shape[1] == 2:
+                        metrics["auc_roc"] = float(roc_auc_score(y_test, y_proba[:, 1]))
+                    else:
+                        metrics["auc_roc"] = float(roc_auc_score(y_test, y_proba, multi_class='ovr', average='weighted'))
+                else:
+                    metrics["auc_roc"] = None
+            except Exception:
+                metrics["auc_roc"] = None
+        else:
+            metrics["auc_roc"] = None
+
         metrics["train_accuracy"] = float(accuracy_score(y_train, y_train_pred))
         metrics["overfit_gap"] = metrics["train_accuracy"] - metrics["accuracy"]
         metrics["training_time_seconds"] = round(training_time, 3)
@@ -178,12 +197,16 @@ class MLService:
         joblib.dump(model, model_path)
         
         from datetime import datetime
+        all_features = self.datasets_cache[dataset]["info"]["features"]
+        used_features = selected_features if selected_features else all_features
+
         metadata = {
             "dataset": dataset,
             "model_name": model_name,
             "task_type": task_type,
             "metrics": metrics,
             "feature_count": X_train.shape[1],
+            "selected_features": used_features,
             "trained_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "parameters": params[model_name]
         }
@@ -220,8 +243,9 @@ class MLService:
             }
         
         task_type = self.trained_models[model_key]["metadata"]["task_type"]
-        
-        X_train, X_test, y_train, y_test = self.prepare_data(dataset, 0.2, 42)
+        selected_features = self.trained_models[model_key]["metadata"].get("selected_features")
+
+        X_train, X_test, y_train, y_test = self.prepare_data(dataset, 0.2, 42, selected_features)
         
         model = self.trained_models[model_key]["model"]
         y_pred = model.predict(X_test)
@@ -258,6 +282,48 @@ class MLService:
         
         return results, metrics
     
+    def get_feature_importance(self, dataset: str, model_name: str):
+        """Estrae feature importance da un modello trainato"""
+        model_key = f"{dataset}_{model_name.replace(' ', '_')}"
+
+        if model_key not in self.trained_models:
+            model_path = self.models_dir / f"{model_key}.joblib"
+            if not model_path.exists():
+                raise ValueError(f"Model {model_key} not found. Train it first.")
+
+            model = joblib.load(model_path)
+            metadata_path = self.models_dir / f"{model_key}_metadata.json"
+            with open(metadata_path, 'r') as f:
+                metadata = json.load(f)
+
+            self.trained_models[model_key] = {
+                "model": model,
+                "metadata": metadata
+            }
+
+        model = self.trained_models[model_key]["model"]
+
+        if not hasattr(model, 'feature_importances_'):
+            raise ValueError(f"Model {model_name} does not support feature importances")
+
+        importances = model.feature_importances_
+
+        # Recupera nomi feature da metadata (rispetta selezione colonne) o dal dataset cache
+        feature_names = self.trained_models[model_key]["metadata"].get("selected_features")
+        if not feature_names:
+            if dataset not in self.datasets_cache:
+                self.load_dataset(dataset)
+            feature_names = self.datasets_cache[dataset]["info"]["features"]
+
+        # Crea lista ordinata per importanza decrescente
+        feature_importance_list = [
+            {"feature": name, "importance": float(imp)}
+            for name, imp in zip(feature_names, importances)
+        ]
+        feature_importance_list.sort(key=lambda x: x["importance"], reverse=True)
+
+        return feature_importance_list
+
     def get_trained_models(self, dataset: str):
         """Ottieni lista di modelli trainati per un dataset"""
         trained = []

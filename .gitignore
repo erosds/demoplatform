@@ -11,6 +11,12 @@
 # production
 /build
 
+# models
+/backend/trained_models
+
+# datasets
+/backend/datasets
+
 # misc
 .DS_Store
 .env.local

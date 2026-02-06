@@ -32,3 +32,7 @@ class TrainingProgress(BaseModel):
 class PredictionResult(BaseModel):
     predictions: List[Dict[str, Any]]
     metrics: Dict[str, float]
+
+class FeatureImportanceRequest(BaseModel):
+    dataset: str
+    model_name: str
