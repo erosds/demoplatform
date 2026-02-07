@@ -4,7 +4,7 @@ import TitleDisplay from "./components/TitleDisplay";
 import NavigationDots from "./components/NavigationDots";
 import NavigationArrows from "./components/NavigationArrows";
 import HomePage from "./components/HomePage";
-import InteractiveContent from "./components/InteractiveContent";
+import InteractiveContent from "./components/MaterialsInformatics/InteractiveContent";
 import DigitalTwinContent from "./components/DigitalTwin/DigitalTwinContent";
 import { workflows } from "./data/workflowsData";
 

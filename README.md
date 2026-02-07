@@ -38,18 +38,19 @@ src/
 ├── components/
 │   ├── HomePage.jsx              # Workflow selector
 │   ├── TitleDisplay.js           # Animated title transitions
-│   ├── InteractiveContent.js     # Materials informatics logic
-│   ├── MoleculeRenderer.js       # SMILES → canvas rendering
-│   ├── IndustriesContent.jsx     # Industry cards
-│   ├── ImpactMetrics.jsx         # Animated KPI counters
 │   ├── NavigationDots.js         # Dot indicators
 │   ├── NavigationArrows.js       # Arrow navigation
+│   ├── MaterialsInformatics/
+│   │   ├── InteractiveContent.js # Materials informatics orchestrator
+│   │   ├── MoleculeRenderer.js   # SMILES → canvas rendering
+│   │   ├── IndustriesContent.jsx # Industry cards
+│   │   └── ImpactMetrics.jsx     # Animated KPI counters
 │   └── DigitalTwin/
 │       ├── DigitalTwinContent.jsx
 │       ├── DatasetSelector.jsx
 │       ├── ModelSelector.jsx
 │       ├── TrainingView.jsx      # WebSocket training with live progress
-│       └── TestingView.jsx       # Predictions table + metrics
+│       └── FeatureImportanceView.jsx
 ├── data/
 │   ├── workflowsData.js          # Workflow/section definitions
 │   ├── sectionsData.js
