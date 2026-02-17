@@ -20,13 +20,33 @@ const models = [
     name: "Decision Tree",
     description: "Tree-based model with interpretable decision rules",
     gradient: "from-purple-600 to-pink-600"
+  },
+  {
+    name: "SGD",
+    description: "Stochastic Gradient Descent for large-scale linear classification",
+    gradient: "from-emerald-600 to-teal-600"
+  },
+  {
+    name: "KNN",
+    description: "K-Nearest Neighbors classifies based on closest training examples",
+    gradient: "from-teal-600 to-cyan-600"
+  },
+  {
+    name: "Naive Bayes",
+    description: "Probabilistic classifier based on Bayes' theorem",
+    gradient: "from-amber-600 to-orange-600"
+  },
+  {
+    name: "SVM",
+    description: "Support Vector Machine finds optimal decision boundaries",
+    gradient: "from-orange-600 to-red-600"
   }
 ];
 
 const ModelSelector = ({ selectedModels, onToggle, canProceed }) => {
   return (
     <div className="flex flex-col items-center justify-center h-full">
-      <div className="grid grid-cols-2 gap-6 max-w-5xl">
+      <div className="grid grid-cols-4 gap-4 max-w-6xl">
         {models.map((model) => {
           const isSelected = selectedModels.includes(model.name);
           
@@ -36,7 +56,7 @@ const ModelSelector = ({ selectedModels, onToggle, canProceed }) => {
               onClick={() => onToggle(model.name)}
               disabled={!canProceed}
               className={`
-                relative p-8 rounded transition-all duration-300
+                relative p-6 rounded transition-all duration-300
                 ${isSelected 
                   ? `bg-gradient-to-r ${model.gradient}` 
                   : 'bg-[#1a1a1a] hover:scale-105'
@@ -53,7 +73,7 @@ const ModelSelector = ({ selectedModels, onToggle, canProceed }) => {
                 </div>
               )}
               
-              <h3 className={`text-2xl font-bold mb-3 ${isSelected ? 'text-white' : 'text-white'}`}>
+              <h3 className={`text-xl font-bold mb-2 ${isSelected ? 'text-white' : 'text-white'}`}>
                 {model.name}
               </h3>
               

@@ -3,7 +3,12 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import AdaBoostClassifier, GradientBoostingClassifier, RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.linear_model import SGDClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, r2_score, roc_auc_score
+from sklearn.inspection import permutation_importance
 import joblib
 import os
 from pathlib import Path
@@ -20,7 +25,11 @@ class MLService:
             "AdaBoost": AdaBoostClassifier,
             "Gradient Boosting": GradientBoostingClassifier,
             "Random Forest": RandomForestClassifier,
-            "Decision Tree": DecisionTreeClassifier
+            "Decision Tree": DecisionTreeClassifier,
+            "SGD": SGDClassifier,
+            "KNN": KNeighborsClassifier,
+            "Naive Bayes": GaussianNB,
+            "SVM": SVC
         }
         
         self.trained_models = {}
@@ -168,7 +177,11 @@ class MLService:
             "AdaBoost": {"n_estimators": 100, "learning_rate": 1.0, "random_state": 42},
             "Gradient Boosting": {"n_estimators": 100, "learning_rate": 0.1, "max_depth": 3, "random_state": 42},
             "Random Forest": {"n_estimators": 100, "random_state": 42, "n_jobs": -1},
-            "Decision Tree": {"random_state": 42}
+            "Decision Tree": {"random_state": 42},
+            "SGD": {"loss": "hinge", "max_iter": 1000, "random_state": 42},
+            "KNN": {"n_neighbors": 5},
+            "Naive Bayes": {},
+            "SVM": {"probability": True, "random_state": 42}
         }
         
         model = ModelClass(**params[model_name])
@@ -326,10 +339,27 @@ class MLService:
 
         model = self.trained_models[model_key]["model"]
 
-        if not hasattr(model, 'feature_importances_'):
-            raise ValueError(f"Model {model_name} does not support feature importances")
-
-        importances = model.feature_importances_
+        if hasattr(model, 'feature_importances_'):
+            importances = model.feature_importances_
+        elif hasattr(model, 'coef_'):
+            # SGD, SVM lineare — usa valore assoluto dei coefficienti
+            coefs = np.abs(model.coef_)
+            if coefs.ndim > 1:
+                coefs = coefs.mean(axis=0)
+            importances = coefs / coefs.sum() if coefs.sum() > 0 else coefs
+        else:
+            # KNN, Naive Bayes — usa permutation importance
+            selected_features = self.trained_models[model_key]["metadata"].get("selected_features")
+            X_train, X_test, y_train, y_test = self.prepare_data(
+                dataset, 0.2, 42, selected_features
+            )
+            result = permutation_importance(model, X_test, y_test, n_repeats=10, random_state=42)
+            importances = result.importances_mean
+            # Normalizza (evita negativi)
+            importances = np.maximum(importances, 0)
+            total = importances.sum()
+            if total > 0:
+                importances = importances / total
 
         # Recupera nomi feature da metadata (rispetta selezione colonne) o dal dataset cache
         feature_names = self.trained_models[model_key]["metadata"].get("selected_features")

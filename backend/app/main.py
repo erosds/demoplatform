@@ -90,50 +90,61 @@ async def train_models(websocket: WebSocket):
         # Allena ogni modello con progresso reale
         loop = asyncio.get_event_loop()
         for idx, model_name in enumerate(models):
-            # Segnala inizio training
-            await websocket.send_text(json.dumps({
-                "status": "training",
-                "model": model_name,
-                "progress": 0,
-                "metrics": None,
-                "message": f"Training {model_name}..."
-            }))
-
-            # Esegui train_model in un thread separato
-            train_future = loop.run_in_executor(
-                None,
-                ml_service.train_model,
-                dataset, model_name, X_train, y_train, X_test, y_test, selected_features
-            )
-
-            # Manda aggiornamenti di progresso reali mentre il training gira
-            # Curva asintotica: avanza veloce all'inizio, rallenta verso il 90%
-            t_start = time.time()
-            tau = 1.5  # costante di tempo — controlla la velocità della curva
-            while not train_future.done():
-                elapsed = time.time() - t_start
-                progress = 90.0 * (1.0 - math.exp(-elapsed / tau))
+            try:
+                # Segnala inizio training
                 await websocket.send_text(json.dumps({
                     "status": "training",
                     "model": model_name,
-                    "progress": round(progress, 1),
+                    "progress": 0,
                     "metrics": None,
-                    "message": f"Training {model_name}... {progress:.0f}%"
+                    "message": f"Training {model_name}..."
                 }))
-                await asyncio.sleep(0.15)
 
-            metrics = train_future.result()
+                # Esegui train_model in un thread separato
+                train_future = loop.run_in_executor(
+                    None,
+                    ml_service.train_model,
+                    dataset, model_name, X_train, y_train, X_test, y_test, selected_features
+                )
 
-            # Completato — salta a 100%
-            await websocket.send_text(json.dumps({
-                "status": "completed",
-                "model": model_name,
-                "progress": 100,
-                "metrics": metrics,
-                "message": f"{model_name} completed"
-            }))
+                # Manda aggiornamenti di progresso reali mentre il training gira
+                # Curva asintotica: avanza veloce all'inizio, rallenta verso il 90%
+                t_start = time.time()
+                tau = 1.5  # costante di tempo — controlla la velocità della curva
+                while not train_future.done():
+                    elapsed = time.time() - t_start
+                    progress = 90.0 * (1.0 - math.exp(-elapsed / tau))
+                    await websocket.send_text(json.dumps({
+                        "status": "training",
+                        "model": model_name,
+                        "progress": round(progress, 1),
+                        "metrics": None,
+                        "message": f"Training {model_name}... {progress:.0f}%"
+                    }))
+                    await asyncio.sleep(0.15)
 
-            await asyncio.sleep(0.3)
+                metrics = train_future.result()
+
+                # Completato — salta a 100%
+                await websocket.send_text(json.dumps({
+                    "status": "completed",
+                    "model": model_name,
+                    "progress": 100,
+                    "metrics": metrics,
+                    "message": f"{model_name} completed"
+                }))
+
+                await asyncio.sleep(0.3)
+            except Exception as e:
+                print(f"Error training {model_name}: {str(e)}")
+                traceback.print_exc()
+                await websocket.send_text(json.dumps({
+                    "status": "model_error",
+                    "model": model_name,
+                    "progress": 0,
+                    "metrics": None,
+                    "message": f"{model_name} failed: {str(e)}"
+                }))
         
         # Training completato
         await websocket.send_text(json.dumps({

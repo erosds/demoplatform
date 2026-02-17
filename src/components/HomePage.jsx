@@ -9,12 +9,12 @@ const HomePage = ({ onSelectWorkflow }) => {
     },
     {
       id: 'foodBeverage',
-      label: 'food & beverage use case',
+      label: 'testing station for...',
       gradient: 'from-amber-600 via-orange-600 to-red-600'
     },
     {
       id: 'digitalTwin',
-      label: 'digital twin & machine learning',
+      label: 'testing station for predictive models',
       gradient: 'from-cyan-600 via-blue-600 to-indigo-600'
     }
   ];

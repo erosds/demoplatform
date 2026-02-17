@@ -10,6 +10,7 @@ const DigitalTwinContent = ({ activeIndex, scrollIndex, totalSections }) => {
   const [selectedModels, setSelectedModels] = useState([]);
   const [selectedFeatures, setSelectedFeatures] = useState(null);
   const [isTrainingComplete, setIsTrainingComplete] = useState(false);
+  const [trainingResults, setTrainingResults] = useState({});
 
   const { currentOpacity } = getAnimationProgress(
     scrollIndex,
@@ -54,7 +55,10 @@ const DigitalTwinContent = ({ activeIndex, scrollIndex, totalSections }) => {
         dataset={selectedDataset}
         selectedModels={selectedModels}
         selectedFeatures={selectedFeatures}
-        onTrainingComplete={setIsTrainingComplete}
+        onTrainingComplete={(complete, results) => {
+          setIsTrainingComplete(complete);
+          if (results) setTrainingResults(results);
+        }}
       />
     );
     contentOpacity = currentOpacity;
@@ -63,6 +67,7 @@ const DigitalTwinContent = ({ activeIndex, scrollIndex, totalSections }) => {
       <FeatureImportanceView
         dataset={selectedDataset}
         trainedModels={isTrainingComplete ? selectedModels : []}
+        trainingResults={trainingResults}
       />
     );
     contentOpacity = currentOpacity;

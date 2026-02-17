@@ -69,9 +69,27 @@ const TrainingView = ({ dataset, selectedModels, selectedFeatures, onTrainingCom
         }
       }
 
+      if (data.status === "model_error") {
+        setTrainingProgress(prev => ({
+          ...prev,
+          [data.model]: {
+            progress: 0,
+            metrics: null,
+            status: "error",
+            trainingTime: null,
+            errorMessage: data.message
+          }
+        }));
+        setCompletedModels(prev => [...prev, data.model]);
+      }
+
       if (data.status === "all_completed") {
         setIsTraining(false);
-        onTrainingComplete(true);
+        // Pass training results (trainingProgress state) to parent
+        setTrainingProgress(prev => {
+          onTrainingComplete(true, prev);
+          return prev;
+        });
       }
 
       if (data.status === "error") {
@@ -144,18 +162,24 @@ const TrainingView = ({ dataset, selectedModels, selectedFeatures, onTrainingCom
   return (
     <div className="flex items-center justify-center h-full px-8 pt-32">
       {/* Container centrato */}
-      <div 
-        className={`w-full flex flex-col items-center transition-all duration-700 overflow-hidden ${trainingStarted ? 'max-w-7xl' : 'max-w-5xl'}`}
+      <div
+        className={`w-full flex flex-col items-center transition-all duration-700 ${trainingStarted ? 'max-w-7xl' : 'max-w-5xl'}`}
         style={{ maxHeight: 'calc(100vh - 280px)' }}
       >
         {/* Progress per ogni modello - Grid layout adattivo */}
         {selectedModels.length > 0 && (
-          <div className={`grid ${selectedModels.length > 2 ? 'grid-cols-2' : 'grid-cols-1'} gap-4 w-full`}>
+          <div
+            className="w-full overflow-y-auto training-scroll"
+            style={{ maxHeight: 'calc(100vh - 340px)', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+          <style>{`.training-scroll::-webkit-scrollbar { display: none; }`}</style>
+          <div className={`grid ${selectedModels.length > 2 ? 'grid-cols-2' : 'grid-cols-1'} gap-3 w-full`}>
             {selectedModels.map((modelName) => {
               const progress = trainingProgress[modelName];
               const isCompleted = completedModels.includes(modelName);
+              const isError = progress?.status === "error";
               const currentProgress = progress?.progress || 0;
-              
+
               // Check se R² è disponibile (regressione) o null (classificazione)
               const hasR2 = progress?.metrics?.r2_score !== null && progress?.metrics?.r2_score !== undefined;
 
@@ -163,19 +187,27 @@ const TrainingView = ({ dataset, selectedModels, selectedFeatures, onTrainingCom
                 <div
                   key={modelName}
                   onClick={() => handleModelClick(modelName)}
-                  className={`bg-[#1a1a1a] rounded p-4 transition-all duration-300 ${
-                    isCompleted ? 'cursor-pointer hover:bg-[#252525] hover:scale-[1.02]' : ''
+                  className={`rounded p-3 transition-all duration-300 ${
+                    isError
+                      ? 'bg-red-900/30 border border-red-800/50'
+                      : 'bg-[#1a1a1a]'
+                  } ${
+                    isCompleted && !isError ? 'cursor-pointer hover:bg-[#252525] hover:scale-[1.02]' : ''
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-lg font-semibold text-white">{modelName}</h3>
+                      <h3 className="text-sm font-semibold text-white">{modelName}</h3>
                       <span className="text-xs text-gray-400 font-mono">
                         {currentProgress.toFixed(0)}%
                       </span>
                     </div>
                     
-                    {isCompleted && (
+                    {isError ? (
+                      <svg className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    ) : isCompleted && (
                       <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                       </svg>
@@ -183,9 +215,9 @@ const TrainingView = ({ dataset, selectedModels, selectedFeatures, onTrainingCom
                   </div>
 
                   {/* Progress bar */}
-                  <div className="relative h-1.5 bg-gray-800 rounded-full overflow-hidden mb-3">
+                  <div className="relative h-1 bg-gray-800 rounded-full overflow-hidden mb-2">
                     <div
-                      className="absolute top-0 left-0 h-full bg-gradient-to-r from-purple-600 to-pink-600"
+                      className={`absolute top-0 left-0 h-full ${isError ? 'bg-red-600' : 'bg-gradient-to-r from-purple-600 to-pink-600'}`}
                       style={{
                         width: `${currentProgress}%`,
                         transition: isCompleted
@@ -195,73 +227,80 @@ const TrainingView = ({ dataset, selectedModels, selectedFeatures, onTrainingCom
                     />
                   </div>
 
+                  {/* Error message */}
+                  {isError && (
+                    <div className="text-red-400 text-sm mt-2">
+                      {progress.errorMessage || "Training failed"}
+                    </div>
+                  )}
+
                   {/* Metrics - Mostra 4 o 5 colonne in base a presenza R² */}
-                  {progress?.metrics && (
+                  {progress?.metrics && !isError && (
                     <>
-                      <div className={`grid ${hasR2 ? 'grid-cols-5' : 'grid-cols-4'} gap-2 mt-3`}>
+                      <div className={`grid ${hasR2 ? 'grid-cols-5' : 'grid-cols-4'} gap-1 mt-2`}>
                         <div className="text-center">
-                          <div className="text-lg font-bold text-purple-400">
+                          <div className="text-sm font-bold text-purple-400">
                             {(progress.metrics.accuracy * 100).toFixed(1)}%
                           </div>
-                          <div className="text-xs text-gray-500 mt-0.5">Acc</div>
+                          <div className="text-[10px] text-gray-500">Acc</div>
                         </div>
-                        
+
                         <div className="text-center">
-                          <div className="text-lg font-bold text-pink-400">
+                          <div className="text-sm font-bold text-pink-400">
                             {(progress.metrics.precision * 100).toFixed(1)}%
                           </div>
-                          <div className="text-xs text-gray-500 mt-0.5">Prec</div>
+                          <div className="text-[10px] text-gray-500">Prec</div>
                         </div>
-                        
+
                         <div className="text-center">
-                          <div className="text-lg font-bold text-blue-400">
+                          <div className="text-sm font-bold text-blue-400">
                             {(progress.metrics.recall * 100).toFixed(1)}%
                           </div>
-                          <div className="text-xs text-gray-500 mt-0.5">Rec</div>
+                          <div className="text-[10px] text-gray-500">Rec</div>
                         </div>
-                        
+
                         <div className="text-center">
-                          <div className="text-lg font-bold text-cyan-400">
+                          <div className="text-sm font-bold text-cyan-400">
                             {(progress.metrics.f1_score * 100).toFixed(1)}%
                           </div>
-                          <div className="text-xs text-gray-500 mt-0.5">F1</div>
+                          <div className="text-[10px] text-gray-500">F1</div>
                         </div>
 
                         {/* Mostra R² solo se disponibile (regressione) */}
                         {hasR2 && (
                           <div className="text-center">
-                            <div className="text-lg font-bold text-indigo-400">
+                            <div className="text-sm font-bold text-indigo-400">
                               {(progress.metrics.r2_score * 100).toFixed(1)}%
                             </div>
-                            <div className="text-xs text-gray-500 mt-0.5">R²</div>
+                            <div className="text-[10px] text-gray-500">R²</div>
                           </div>
                         )}
                       </div>
 
                       {/* Training Time, Split, AUC-ROC, Overfit */}
-                      <div className="mt-3 grid grid-cols-4 gap-2">
+                      <div className="mt-2 grid grid-cols-4 gap-1">
                         <div className="text-center">
-                          <div className="text-sm font-bold text-amber-400">
+                          <div className="text-xs font-bold text-amber-400">
                             {progress.trainingTime ? `${progress.trainingTime.toFixed(2)}s` : '-'}
                           </div>
-                          <div className="text-xs text-gray-500 mt-0.5">Training Time</div>
+                          <div className="text-[10px] text-gray-500">Time</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-sm font-bold text-purple-400">
+                          <div className="text-xs font-bold text-purple-400">
                             80/20%
                           </div>
-                          <div className="text-xs text-gray-500 mt-0.5">Split</div>
+                          <div className="text-[10px] text-gray-500">Split</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-sm font-bold text-teal-400">
+                          <div className="text-xs font-bold text-teal-400">
                             {progress.metrics.auc_roc != null
                               ? (progress.metrics.auc_roc * 100).toFixed(1) + '%'
                               : '-'}
                           </div>
-                          <div className="text-xs text-gray-500 mt-0.5">AUC-ROC</div>
+                          <div className="text-[10px] text-gray-500">AUC-ROC</div>
                         </div>
                         <div className="text-center">
-                          <div className={`text-sm font-bold ${
+                          <div className={`text-xs font-bold ${
                             progress.metrics.overfit_gap != null
                               ? progress.metrics.overfit_gap > 0.1 ? 'text-red-400'
                               : progress.metrics.overfit_gap > 0.05 ? 'text-amber-400'
@@ -272,7 +311,7 @@ const TrainingView = ({ dataset, selectedModels, selectedFeatures, onTrainingCom
                               ? (progress.metrics.overfit_gap * 100).toFixed(1) + '%'
                               : '-'}
                           </div>
-                          <div className="text-xs text-gray-500 mt-0.5">Overfit</div>
+                          <div className="text-[10px] text-gray-500">Overfit</div>
                         </div>
                       </div>
                     </>
@@ -280,6 +319,7 @@ const TrainingView = ({ dataset, selectedModels, selectedFeatures, onTrainingCom
                 </div>
               );
             })}
+          </div>
           </div>
         )}
 
