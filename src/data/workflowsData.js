@@ -48,7 +48,7 @@ export const workflows = {
         id: 5,
         title: "industries",
         subtitle: "Materials informatics is transforming <strong>multiple sectors</strong>, from automotive to pharmaceuticals, enabling <strong>targeted innovation</strong> and competitive advantages.",
-        gradient: "from-slate-200 via-gray-300 to-gray-400",
+        gradient: "from-blue-600 via-cyan-600 to-teal-600",
       },
       {
         id: 6,
