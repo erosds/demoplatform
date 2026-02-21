@@ -1,4 +1,4 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import asyncio
@@ -209,6 +209,7 @@ from app.neural_safety_service import (
     get_all_embeddings as ns_get_all_embeddings,
     list_chromatograms as ns_list_chromatograms,
     get_chromatogram as ns_get_chromatogram,
+    spectral_match as ns_spectral_match,
 )
 
 @app.get("/neural-safety/library")
@@ -276,6 +277,29 @@ def neural_safety_get_chromatogram(filename: str):
         return ns_get_chromatogram(filename)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/neural-safety/spectral-match")
+async def neural_safety_spectral_match(request: Request):
+    """
+    Real spectral matching via matchms ModifiedCosine.
+    Body: { peaks: [{mz, intensity}], precursor_mz, tolerance?, top_n? }
+    """
+    try:
+        body        = await request.json()
+        query_peaks = body.get("peaks", [])
+        precursor   = float(body.get("precursor_mz", 0.0))
+        tolerance   = float(body.get("tolerance", 0.01))
+        top_n       = int(body.get("top_n", 10))
+
+        loop = asyncio.get_running_loop()
+        results = await loop.run_in_executor(
+            None,
+            lambda: ns_spectral_match(query_peaks, precursor, tolerance, top_n)
+        )
+        return {"results": results}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

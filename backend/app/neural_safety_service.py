@@ -291,6 +291,87 @@ def get_chromatogram(filename: str) -> Dict:
         return _json.load(fh)
 
 
+# ──────────────────────────────────────────────────────────────
+#  Real spectral matching — matchms ModifiedCosine
+# ──────────────────────────────────────────────────────────────
+
+def spectral_match(query_peaks: List[Dict], precursor_mz: float,
+                   tolerance: float = 0.01, top_n: int = 10) -> List[Dict]:
+    """
+    Real spectral matching using matchms ModifiedCosine similarity against
+    the 102-molecule ECRFS library.
+    Returns top_n results sorted by similarity (descending).
+    """
+    import numpy as np
+    from matchms import Spectrum
+    from matchms.filtering import normalize_intensities
+    from matchms.similarity import ModifiedCosine
+
+    global _spectra_cache
+    if _spectra_cache is None:
+        _spectra_cache = _parse_mgf()
+
+    if not query_peaks:
+        return []
+
+    # Build matchms query Spectrum
+    q_mz  = np.array([p["mz"]       for p in query_peaks], dtype=float)
+    q_int = np.array([p["intensity"] for p in query_peaks], dtype=float)
+    order = np.argsort(q_mz)
+    query = Spectrum(mz=q_mz[order], intensities=q_int[order],
+                     metadata={"precursor_mz": float(precursor_mz)})
+    query = normalize_intensities(query)
+
+    scorer  = ModifiedCosine(tolerance=tolerance)
+    library = get_library()
+    results = []
+
+    for i, (spectrum, mol) in enumerate(zip(_spectra_cache, library)):
+        lib_peaks = spectrum["peaks"]
+        if not lib_peaks:
+            continue
+
+        l_mz  = np.array([p["mz"]       for p in lib_peaks], dtype=float)
+        l_int = np.array([p["intensity"] for p in lib_peaks], dtype=float)
+        order = np.argsort(l_mz)
+
+        # Precursor m/z: PEPMASS field, else EXACTMASS + H
+        pepmass_raw = spectrum["metadata"].get("PEPMASS", "")
+        try:
+            lib_prec = float(pepmass_raw.split()[0]) if pepmass_raw else 0.0
+        except (ValueError, IndexError):
+            lib_prec = 0.0
+        if not lib_prec:
+            try:
+                lib_prec = float(spectrum["metadata"].get("EXACTMASS", 0)) + 1.007276
+            except ValueError:
+                lib_prec = 0.0
+
+        lib_spec = Spectrum(mz=l_mz[order], intensities=l_int[order],
+                            metadata={"precursor_mz": lib_prec})
+        lib_spec = normalize_intensities(lib_spec)
+
+        try:
+            result = scorer.pair(query, lib_spec)
+            r      = result.item()          # → (score, n_matches) tuple
+            score, n_matches = float(r[0]), int(r[1])
+        except Exception:
+            score, n_matches = 0.0, 0
+
+        results.append({
+            "id":         i,
+            "name":       mol["name"],
+            "formula":    mol["formula"],
+            "tox_score":  mol["tox_score"],
+            "cas":        mol["cas"],
+            "similarity": round(score, 4),
+            "n_matches":  n_matches,
+        })
+
+    results.sort(key=lambda x: x["similarity"], reverse=True)
+    return results[:top_n]
+
+
 def get_spectrum(spectrum_id: int) -> Dict:
     """Return full peak list and raw metadata for a single spectrum by index."""
     global _spectra_cache
