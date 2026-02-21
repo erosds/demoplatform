@@ -63,10 +63,46 @@ export const workflows = {
     sections: [
       {
         id: 0,
-        title: "overview",
-        subtitle: "Food & Beverage workflow overview - <strong>Content coming soon</strong>",
+        title: "knowledge base",
+        subtitle: "Start with a reference dataset. For example, here you can browse the <strong>EFSA/Wageningen reference library</strong> of 102 PMT molecules — explore MS/MS spectra, exact masses, toxicological scores, and chemical identifiers.",
         gradient: "from-amber-600 via-orange-600 to-red-600",
-      }
+      },
+      {
+        id: 1,
+        title: "vectorization",
+        subtitle: "Convert MS/MS spectra into <strong>numerical vectors</strong> using Spec2Vec, an algorithm similar to those behind many language models like GPT. Molecules with similar fragmentation patterns end up close in a vector space, for efficient processing and comparison.",
+        gradient: "from-amber-600 via-orange-600 to-red-600",
+      },
+      {
+        id: 2,
+        title: "spectrum upload",
+        subtitle: "Upload your <strong>raw mass spectrometry data</strong> (MGF, mzML) for processing and alignment against the EFSA reference library.",
+        gradient: "from-orange-600 via-red-600 to-rose-600",
+      },
+      {
+        id: 3,
+        title: "spectral matching",
+        subtitle: "Run <strong>cosine similarity matching</strong> via matchms to identify candidate pesticides in your sample against the 102-compound PMT reference database.",
+        gradient: "from-red-600 via-rose-600 to-pink-600",
+      },
+      {
+        id: 4,
+        title: "spec2vec analysis",
+        subtitle: "Apply <strong>deep learned spectral embeddings</strong> via Spec2Vec for robust compound identification even with noisy or incomplete fragmentation patterns.",
+        gradient: "from-rose-600 via-pink-600 to-fuchsia-600",
+      },
+      {
+        id: 5,
+        title: "risk assessment",
+        subtitle: "Visualize <strong>identified pesticides and emerging contaminants</strong>, ranked by EFSA toxicological score and detection confidence.",
+        gradient: "from-pink-600 via-fuchsia-600 to-purple-600",
+      },
+      {
+        id: 6,
+        title: "report",
+        subtitle: "Generate a <strong>compliance report</strong> summarizing detected compounds, risk scores, and recommendations for Food & Beverage quality control.",
+        gradient: "from-fuchsia-600 via-purple-600 to-indigo-600",
+      },
     ]
   },
   digitalTwin: {

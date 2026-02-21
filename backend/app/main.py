@@ -197,6 +197,89 @@ async def feature_importance(request: FeatureImportanceRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# ──────────────────────────────────────────────────────────────
+#  Neural Safety MS endpoints  (flusso separato)
+# ──────────────────────────────────────────────────────────────
+
+from app.neural_safety_service import (
+    get_library as ns_get_library,
+    get_spectrum as ns_get_spectrum,
+    get_embedding as ns_get_embedding,
+    get_embeddings_3d as ns_get_embeddings_3d,
+    get_all_embeddings as ns_get_all_embeddings,
+    list_chromatograms as ns_list_chromatograms,
+    get_chromatogram as ns_get_chromatogram,
+)
+
+@app.get("/neural-safety/library")
+def neural_safety_library():
+    """Restituisce la libreria EFSA/Wageningen: 102 molecole PMT con metadata unificati."""
+    try:
+        return ns_get_library()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/neural-safety/embedding/{spectrum_id}")
+def neural_safety_embedding(spectrum_id: int):
+    """Restituisce il vettore 300-D (pseudo Spec2Vec) per una molecola."""
+    try:
+        return ns_get_embedding(spectrum_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/neural-safety/embeddings-3d")
+def neural_safety_embeddings_3d():
+    """Restituisce le coordinate PCA 3-D per tutte le 102 molecole."""
+    try:
+        return ns_get_embeddings_3d()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/neural-safety/spectrum/{spectrum_id}")
+def neural_safety_spectrum(spectrum_id: int):
+    """Restituisce il set di picchi MS2 completo per una molecola (per indice)."""
+    try:
+        return ns_get_spectrum(spectrum_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/neural-safety/all-embeddings")
+def neural_safety_all_embeddings():
+    """Restituisce i vettori 300-D per tutte le 102 molecole (per similarity search lato client)."""
+    try:
+        return ns_get_all_embeddings()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/neural-safety/chromatograms")
+def neural_safety_list_chromatograms():
+    """Lista i file cromatogramma JSON disponibili."""
+    try:
+        return ns_list_chromatograms()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/neural-safety/chromatogram/{filename}")
+def neural_safety_get_chromatogram(filename: str):
+    """Restituisce un cromatogramma JSON per filename."""
+    try:
+        return ns_get_chromatogram(filename)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

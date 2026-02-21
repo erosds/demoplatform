@@ -6,6 +6,7 @@ import NavigationArrows from "./components/NavigationArrows";
 import HomePage from "./components/HomePage";
 import InteractiveContent from "./components/MaterialsInformatics/InteractiveContent";
 import DigitalTwinContent from "./components/DigitalTwin/DigitalTwinContent";
+import NeuralSafetyContent from "./components/NeuralSafety/NeuralSafetyContent";
 import { workflows } from "./data/workflowsData";
 
 export default function App() {
@@ -157,6 +158,14 @@ export default function App() {
 
       {currentWorkflow === "digitalTwin" && (
         <DigitalTwinContent
+          activeIndex={activeIndex}
+          scrollIndex={scrollIndex}
+          totalSections={currentSections.length}
+        />
+      )}
+
+      {currentWorkflow === "neuralSafety" && (
+        <NeuralSafetyContent
           activeIndex={activeIndex}
           scrollIndex={scrollIndex}
           totalSections={currentSections.length}

@@ -52,18 +52,18 @@ class MLService:
         return 'regression'
         
     def list_datasets(self):
-        """Lista tutti i dataset CSV nella cartella datasets"""
+        """Lista tutti i dataset CSV nella sottocartella testing_station"""
         datasets = []
-        for file in self.datasets_dir.glob("*.csv"):
+        for file in (self.datasets_dir / "testing_station").glob("*.csv"):
             datasets.append(file.name)
         return datasets
-    
+
     def load_dataset(self, filename: str):
         """Carica e analizza un dataset"""
         if filename in self.datasets_cache:
             return self.datasets_cache[filename]["info"]
-            
-        filepath = self.datasets_dir / filename
+
+        filepath = self.datasets_dir / "testing_station" / filename
         try:
             df = pd.read_csv(filepath)
         except UnicodeDecodeError:
