@@ -3,8 +3,30 @@ import { LuActivity, LuSearch, LuDatabase, LuFlaskConical } from "react-icons/lu
 
 const BACKEND = "http://localhost:8000";
 
-// ─── Cosine similarity (JS, mirrors backend embedding logic) ────────────────
+// ─── Cosine similarity (JS, mirrors backend embedding logic incl. smoothing) ─
 const MZ_LO = 30, MZ_HI = 1100, DIM = 300;
+
+function gaussianSmooth(arr, sigma = 1.2) {
+  const radius = Math.max(1, Math.floor(3 * sigma));
+  const kernel = [];
+  let ksum = 0;
+  for (let i = -radius; i <= radius; i++) {
+    const v = Math.exp(-0.5 * (i / sigma) ** 2);
+    kernel.push(v);
+    ksum += v;
+  }
+  for (let i = 0; i < kernel.length; i++) kernel[i] /= ksum;
+  const out = new Float64Array(arr.length);
+  for (let i = 0; i < arr.length; i++) {
+    let val = 0;
+    for (let k = 0; k < kernel.length; k++) {
+      const j = i + k - radius;
+      if (j >= 0 && j < arr.length) val += arr[j] * kernel[k];
+    }
+    out[i] = val;
+  }
+  return out;
+}
 
 function peaksToVector(peaks) {
   const bins = new Float64Array(DIM);
@@ -16,11 +38,11 @@ function peaksToVector(peaks) {
     const val = p.intensity / maxI;
     if (val > bins[idx]) bins[idx] = val;
   });
+  const smoothed = gaussianSmooth(bins);
   let norm = 0;
-  for (let i = 0; i < DIM; i++) norm += bins[i] * bins[i];
+  for (let i = 0; i < DIM; i++) norm += smoothed[i] * smoothed[i];
   norm = Math.sqrt(norm);
-  if (norm > 0) for (let i = 0; i < DIM; i++) bins[i] /= norm;
-  return bins;
+  return norm > 0 ? smoothed.map((v) => v / norm) : smoothed;
 }
 
 function cosineSimilarity(vecA, vecB) {
@@ -143,10 +165,10 @@ const Chromatogram = ({ tic, peaks, selectedPeakId, onSelectPeak }) => {
           {t.toFixed(1)}
         </text>
       ))}
-      <text x={PL + iW / 2} y={H - 1} textAnchor="middle" fontSize={7} fill="#374151">RT (min)</text>
+      <text x={PL + iW / 2} y={H - 1} textAnchor="middle" fontSize={12} fill="#374151">RT (min)</text>
 
       {/* Y axis label */}
-      <text x={8} y={PT + iH / 2} textAnchor="middle" fontSize={7} fill="#374151"
+      <text x={8} y={PT + iH / 2} textAnchor="middle" fontSize={12} fill="#374151"
         transform={`rotate(-90, 8, ${PT + iH / 2})`}>Intensity</text>
     </svg>
   );
