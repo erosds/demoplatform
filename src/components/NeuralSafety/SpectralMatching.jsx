@@ -3,35 +3,26 @@ import { LuActivity, LuSearch, LuDatabase, LuFlaskConical } from "react-icons/lu
 
 const BACKEND = "http://localhost:8000";
 
-// ─── Color helpers ───────────────────────────────────────────────────────────
-function toxHex(score) {
-  if (!score || score === "N/A") return "#6b7280";
-  const n = parseFloat(score);
-  if (isNaN(n)) return "#6b7280";
-  if (n >= 8) return "#ef4444";
-  if (n >= 5) return "#f97316";
-  return "#10b981";
-}
-
-// Modified Cosine scoring uses BOTH similarity and number of matched peaks.
+// Modified Cosine scoring uses BOTH similarity score AND number of matched peaks.
 // A high score with very few matches is a coincidental fragment overlap, not a real hit.
+// Thresholds: HIGH = sim≥0.65 AND n≥5 · UNCERTAIN = sim≥0.40 AND n≥2 · NO MATCH = otherwise
 function simCategory(sim, n_matches) {
-  if (sim >= 0.65 && n_matches >= 5) return "HIGH";
-  if (sim >= 0.40 && n_matches >= 2) return "GREY";
+  if (sim >= 0.65 && n_matches >= 10) return "HIGH";
+  if (sim >= 0.40 && n_matches >= 2) return "UNCERTAIN";
   return "NONE";
 }
 
 function simColor(sim, n_matches) {
   const cat = simCategory(sim, n_matches);
-  if (cat === "HIGH") return "#ef4444";
-  if (cat === "GREY") return "#f97316";
-  return "#6b7280";
+  if (cat === "HIGH")      return "#ef4444";   // red
+  if (cat === "UNCERTAIN") return "#eab308";   // yellow
+  return "#4b5563";                             // dark grey
 }
 
 function simLabel(sim, n_matches) {
   const cat = simCategory(sim, n_matches);
-  if (cat === "HIGH") return "HIGH MATCH";
-  if (cat === "GREY") return "GREY ZONE — review needed";
+  if (cat === "HIGH")      return "CONFIRMED MATCH";
+  if (cat === "UNCERTAIN") return "UNCERTAIN — further investigation needed";
   return "NO MATCH";
 }
 
@@ -297,7 +288,7 @@ const SpectralMatching = () => {
                 <table className="w-full text-xs border-collapse">
                   <thead>
                     <tr className="border-b border-gray-800">
-                      {["#", "RT (min)", "Intensity", "Precursor m/z", "Label"].map((h) => (
+                      {["#", "RT (min)", "Intensity", "Precursor m/z", "ID"].map((h) => (
                         <th key={h} className="text-left text-[10px] text-gray-600 uppercase tracking-wide py-1.5 px-2 font-normal">{h}</th>
                       ))}
                     </tr>
@@ -318,7 +309,7 @@ const SpectralMatching = () => {
                           <td className="py-1.5 px-2 font-mono text-gray-300">{pk.rt.toFixed(2)}</td>
                           <td className="py-1.5 px-2 font-mono text-gray-300">{pk.intensity.toLocaleString()}</td>
                           <td className="py-1.5 px-2 font-mono text-gray-400">{pk.precursor_mz.toFixed(4)}</td>
-                          <td className={`py-1.5 px-2 ${isSel ? "text-amber-400" : "text-gray-500"}`}>{pk.label}</td>
+                          <td className={`py-1.5 px-2 font-mono ${isSel ? "text-amber-400" : "text-gray-600"}`}>Unknown {pk.id}</td>
                         </tr>
                       );
                     })}
@@ -334,7 +325,7 @@ const SpectralMatching = () => {
                 <span className="text-xs font-semibold uppercase tracking-widest text-gray-400">MS/MS Spectrum</span>
                 {selectedPeak && (
                   <span className="text-[10px] text-gray-600 font-mono ml-1">
-                    {selectedPeak.label} · RT {selectedPeak.rt.toFixed(2)} min · {selectedPeak.precursor_mz.toFixed(4)} Da
+                    Unknown {selectedPeak.id} · RT {selectedPeak.rt.toFixed(2)} min · {selectedPeak.precursor_mz.toFixed(4)} Da
                   </span>
                 )}
               </div>
@@ -368,7 +359,7 @@ const SpectralMatching = () => {
                 <div className="flex items-center justify-between mb-3 flex-shrink-0">
                   <div>
                     <span className="text-[10px] uppercase tracking-widest text-gray-600">
-                      Similarity Search · ECRFS Library · matchms ModifiedCosine
+                      Similarity Search with matchms ModifiedCosine
                     </span>
                   </div>
                   <button onClick={handleSearch} disabled={!selectedPeak || searching}
@@ -406,39 +397,65 @@ const SpectralMatching = () => {
 
                     {/* Best match card */}
                     {(() => {
-                      const b = matchResult.best;
+                      const b   = matchResult.best;
                       const col = simColor(b.similarity, b.n_matches);
+                      const cat = simCategory(b.similarity, b.n_matches);
+                      // Fragment coverage bar capped at 40 matched peaks = 100%
+                      const fragPct = Math.min(100, (b.n_matches / 40) * 100);
                       return (
                         <div className="rounded border flex-shrink-0"
-                          style={{ borderColor: col + "44", background: col + "0a" }}>
-                          <div className="px-4 py-3">
+                          style={{ borderColor: col + "55", background: col + "0c" }}>
+                          <div className="px-4 py-3 space-y-3">
+
+                            {/* Header: name + badge */}
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
                                 <div className="text-xs font-semibold text-gray-200 truncate">{b.name}</div>
                                 <div className="text-[10px] text-gray-500 font-mono mt-0.5">{b.formula}</div>
-                                <div className="text-[10px] mt-1 font-semibold" style={{ color: col }}>
-                                  {simLabel(b.similarity, b.n_matches)}
-                                </div>
                               </div>
-                              <div className="flex-shrink-0 text-right">
-                                <div className="text-2xl font-bold font-mono" style={{ color: col }}>
-                                  {(b.similarity * 100).toFixed(1)}%
-                                </div>
-                                <div className="text-[10px] text-gray-600">{b.n_matches} matched peaks</div>
+                              <div className="flex-shrink-0 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide"
+                                style={{ color: col, background: col + "20" }}>
+                                {cat === "HIGH" ? "Confirmed" : cat === "UNCERTAIN" ? "Uncertain" : "No Match"}
                               </div>
                             </div>
-                            {b.tox_score !== "N/A" && b.tox_score && (
-                              <div className="mt-2 flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full flex-shrink-0"
-                                  style={{ backgroundColor: toxHex(b.tox_score) }} />
-                                <span className="text-[10px] text-gray-500">
-                                  EFSA Tox Score:&nbsp;
-                                  <span className="font-semibold" style={{ color: toxHex(b.tox_score) }}>
-                                    {b.tox_score}/10
-                                  </span>
+
+                            {/* Metric 1 — Similarity score */}
+                            <div>
+                              <div className="flex justify-between items-baseline mb-1">
+                                <span className="text-[10px] text-gray-500 uppercase tracking-wide">Similarity score</span>
+                                <span className="text-sm font-bold font-mono" style={{ color: col }}>
+                                  {(b.similarity * 100).toFixed(1)}%
                                 </span>
                               </div>
-                            )}
+                              <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                                <div className="h-full rounded-full transition-all"
+                                  style={{ width: `${b.similarity * 100}%`, backgroundColor: col }} />
+                              </div>
+                              <div className="text-[9px] text-gray-700 mt-0.5">
+                                threshold for confirmation: ≥ 65%
+                              </div>
+                            </div>
+
+                            {/* Metric 2 — Matched fragments */}
+                            <div>
+                              <div className="flex justify-between items-baseline mb-1">
+                                <span className="text-[10px] text-gray-500 uppercase tracking-wide">Matched fragments</span>
+                                <span className="text-sm font-bold font-mono" style={{ color: col }}>
+                                  {b.n_matches} <span className="text-[10px] text-gray-600">peaks</span>
+                                </span>
+                              </div>
+                              <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                                <div className="h-full rounded-full transition-all"
+                                  style={{ width: `${fragPct}%`, backgroundColor: col + "bb" }} />
+                              </div>
+                              <div className="text-[9px] text-gray-700 mt-0.5">
+                                threshold for confirmation: ≥ 10 matched peaks
+                                {b.n_matches < 10 && (
+                                  <span style={{ color: col }}> — high score may be coincidental overlap</span>
+                                )}
+                              </div>
+                            </div>
+
                           </div>
                         </div>
                       );
@@ -446,26 +463,46 @@ const SpectralMatching = () => {
 
                     {/* Top 5 ranking */}
                     <div className="flex-shrink-0">
-                      <div className="text-[10px] text-gray-600 uppercase tracking-widest mb-2">Top 5 matches</div>
+                      <div className="flex items-center gap-4 text-[9px] text-gray-700 uppercase tracking-widest mb-1.5 px-3">
+                        <span className="w-4" />
+                        <span className="flex-1">Compound</span>
+                        <span className="w-28 text-right">Similarity</span>
+                        <span className="w-28 text-right">Fragments</span>
+                      </div>
                       <div className="flex flex-col gap-1">
                         {matchResult.top5.map((mol, rank) => {
-                          const col = simColor(mol.similarity, mol.n_matches);
+                          const col     = simColor(mol.similarity, mol.n_matches);
+                          const fragPct = Math.min(100, (mol.n_matches / 40) * 100);
                           return (
-                            <div key={mol.id} className="flex items-center gap-3 px-3 py-1.5 bg-[#0e0e0e] rounded border border-gray-800/60">
-                              <span className="text-[10px] text-gray-600 w-4">{rank + 1}</span>
-                              <span className="flex-1 text-[10px] text-gray-300 truncate">{mol.name}</span>
-                              <span className="text-[10px] text-gray-500 font-mono">{mol.formula}</span>
-                              <span className="text-[10px] text-gray-700 font-mono w-12 text-center">
-                                {mol.n_matches}pk
-                              </span>
-                              <div className="w-24 flex items-center gap-2 flex-shrink-0">
-                                <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                                  <div className="h-full rounded-full transition-all"
+                            <div key={mol.id} className="flex items-center gap-4 px-3 py-2 bg-[#0e0e0e] rounded border border-gray-800/60">
+                              <span className="text-[10px] text-gray-600 w-4 flex-shrink-0">{rank + 1}</span>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-[10px] text-gray-300 truncate">{mol.name}</div>
+                                <div className="text-[9px] text-gray-600 font-mono">{mol.formula}</div>
+                              </div>
+                              {/* Similarity bar */}
+                              <div className="w-28 flex-shrink-0">
+                                <div className="flex justify-between text-[9px] mb-0.5">
+                                  <span className="text-gray-700">sim</span>
+                                  <span className="font-mono" style={{ color: col }}>
+                                    {(mol.similarity * 100).toFixed(1)}%
+                                  </span>
+                                </div>
+                                <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
+                                  <div className="h-full rounded-full"
                                     style={{ width: `${mol.similarity * 100}%`, backgroundColor: col }} />
                                 </div>
-                                <span className="text-[10px] font-mono w-10 text-right" style={{ color: col }}>
-                                  {(mol.similarity * 100).toFixed(1)}%
-                                </span>
+                              </div>
+                              {/* Fragment coverage bar */}
+                              <div className="w-28 flex-shrink-0">
+                                <div className="flex justify-between text-[9px] mb-0.5">
+                                  <span className="text-gray-700">frags</span>
+                                  <span className="font-mono text-gray-500">{mol.n_matches} pk</span>
+                                </div>
+                                <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
+                                  <div className="h-full rounded-full"
+                                    style={{ width: `${fragPct}%`, backgroundColor: col + "88" }} />
+                                </div>
                               </div>
                             </div>
                           );
