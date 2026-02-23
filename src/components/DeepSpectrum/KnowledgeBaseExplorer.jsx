@@ -278,7 +278,7 @@ const KnowledgeBaseExplorer = ({ activeLib }) => {
     setLoading(true);
     setLibrary([]);
     setError(null);
-    fetch(`${BACKEND}/neural-safety/library`)
+    fetch(`${BACKEND}/deep-spectrum/library`)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
@@ -298,7 +298,7 @@ const KnowledgeBaseExplorer = ({ activeLib }) => {
     if (selectedId === null) return;
     setSpecLoading(true);
     setSpectrum(null);
-    fetch(`${BACKEND}/neural-safety/spectrum/${selectedId}`)
+    fetch(`${BACKEND}/deep-spectrum/spectrum/${selectedId}`)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();

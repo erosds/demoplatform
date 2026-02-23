@@ -443,7 +443,7 @@ const VectorizationEngine = ({ selectedFile }) => {
     if (!activated) return;
     const minDelay = new Promise((r) => setTimeout(r, 1800));
     Promise.all([
-      fetch(`${BACKEND}/neural-safety/library`).then((r) => r.json()),
+      fetch(`${BACKEND}/deep-spectrum/library`).then((r) => r.json()),
       minDelay,
     ])
       .then(([data]) => {
@@ -459,15 +459,15 @@ const VectorizationEngine = ({ selectedFile }) => {
     setSpectrum(null);
     setEmbedding(null);
     Promise.all([
-      fetch(`${BACKEND}/neural-safety/spectrum/${selectedId}`).then((r) => r.json()),
-      fetch(`${BACKEND}/neural-safety/embedding/${selectedId}`).then((r) => r.json()),
+      fetch(`${BACKEND}/deep-spectrum/spectrum/${selectedId}`).then((r) => r.json()),
+      fetch(`${BACKEND}/deep-spectrum/embedding/${selectedId}`).then((r) => r.json()),
     ]).then(([spec, emb]) => { setSpectrum(spec); setEmbedding(emb.embedding); });
   }, [selectedId]);
 
   useEffect(() => {
     if (!show3D || points3D.length > 0) return;
     setLoading3D(true);
-    fetch(`${BACKEND}/neural-safety/embeddings-3d`)
+    fetch(`${BACKEND}/deep-spectrum/embeddings-3d`)
       .then((r) => r.json())
       .then((data) => { setPoints3D(data); setLoading3D(false); })
       .catch(() => setLoading3D(false));
@@ -478,7 +478,7 @@ const VectorizationEngine = ({ selectedFile }) => {
     if (!show3D || !selectedFile) return;
     setQueryPoints3D([]);
     setLoadingQuery(true);
-    fetch(`${BACKEND}/neural-safety/chromatogram/${selectedFile}`)
+    fetch(`${BACKEND}/deep-spectrum/chromatogram/${selectedFile}`)
       .then((r) => r.json())
       .then(async (data) => {
         const peaks = data.peaks ?? [];
@@ -486,7 +486,7 @@ const VectorizationEngine = ({ selectedFile }) => {
         for (const pk of peaks) {
           if (!pk.ms2?.peaks?.length) continue;
           try {
-            const res = await fetch(`${BACKEND}/neural-safety/project-query-3d`, {
+            const res = await fetch(`${BACKEND}/deep-spectrum/project-query-3d`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ peaks: pk.ms2.peaks, label: `Pk ${pk.id}` }),

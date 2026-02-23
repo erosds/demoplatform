@@ -6,7 +6,7 @@ import NavigationArrows from "./components/NavigationArrows";
 import HomePage from "./components/HomePage";
 import InteractiveContent from "./components/MaterialsInformatics/InteractiveContent";
 import DigitalTwinContent from "./components/DigitalTwin/DigitalTwinContent";
-import NeuralSafetyContent from "./components/NeuralSafety/NeuralSafetyContent";
+import DeepSpectrumContent from "./components/DeepSpectrum/DeepSpectrumContent";
 import { workflows } from "./data/workflowsData";
 
 export default function App() {
@@ -164,8 +164,8 @@ export default function App() {
         />
       )}
 
-      {currentWorkflow === "neuralSafety" && (
-        <NeuralSafetyContent
+      {currentWorkflow === "deepSpectrum" && (
+        <DeepSpectrumContent
           activeIndex={activeIndex}
           scrollIndex={scrollIndex}
           totalSections={currentSections.length}

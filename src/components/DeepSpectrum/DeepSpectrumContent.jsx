@@ -10,7 +10,7 @@ import SummaryImpact from "./SummaryImpact";
 import FuturePerspective from "./FuturePerspective";
 import { getAnimationProgress } from "../../utils/animationConfig";
 
-const NeuralSafetyContent = ({ activeIndex, scrollIndex, totalSections }) => {
+const DeepSpectrumContent = ({ activeIndex, scrollIndex, totalSections }) => {
   const { currentOpacity } = getAnimationProgress(scrollIndex, activeIndex, totalSections);
 
   const [selectedFile, setSelectedFile] = useState(() => localStorage.getItem("ns_file") ?? null);
@@ -62,4 +62,4 @@ const NeuralSafetyContent = ({ activeIndex, scrollIndex, totalSections }) => {
   );
 };
 
-export default NeuralSafetyContent;
+export default DeepSpectrumContent;

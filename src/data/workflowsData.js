@@ -58,8 +58,8 @@ export const workflows = {
       },
     ]
   },
-  neuralSafety: {
-    id: 'neuralSafety',
+  deepSpectrum: {
+    id: 'deepSpectrum',
     sections: [
       {
         id: 0,

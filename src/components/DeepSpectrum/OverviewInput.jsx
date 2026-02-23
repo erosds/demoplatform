@@ -53,8 +53,8 @@ const OverviewInput = ({ selectedFile, activeLib, onFileChange, onLibChange }) =
   const libRef  = useRef(null);
 
   useEffect(() => {
-    fetch(`${BACKEND}/neural-safety/chromatograms`).then((r) => r.json()).then(setFiles).catch(() => {});
-    fetch(`${BACKEND}/neural-safety/libraries`).then((r) => r.json()).then(setLibs).catch(() => {});
+    fetch(`${BACKEND}/deep-spectrum/chromatograms`).then((r) => r.json()).then(setFiles).catch(() => {});
+    fetch(`${BACKEND}/deep-spectrum/libraries`).then((r) => r.json()).then(setLibs).catch(() => {});
   }, []);
 
   useEffect(() => {

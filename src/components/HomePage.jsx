@@ -13,7 +13,7 @@ const HomePage = ({ onSelectWorkflow }) => {
       gradient: 'from-cyan-600 via-blue-600 to-indigo-600'
     },
     {
-      id: 'neuralSafety',
+      id: 'deepSpectrum',
       label: 'DeepSpectrum',
       tagline: 'spectra matching with AI',
       gradient: 'from-amber-600 via-orange-600 to-red-600'

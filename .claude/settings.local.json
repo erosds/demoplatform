@@ -35,7 +35,9 @@
       "WebFetch(domain:academic.oup.com)",
       "WebFetch(domain:www.umweltbundesamt.de)",
       "WebFetch(domain:www.norman-network.net)",
-      "WebFetch(domain:link.springer.com)"
+      "WebFetch(domain:link.springer.com)",
+      "Bash(head:*)",
+      "Bash(cd:*)"
     ]
   }
 }

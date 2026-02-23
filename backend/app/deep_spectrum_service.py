@@ -1,5 +1,5 @@
 """
-Neural Safety MS — Backend Service
+Deep Spectrum MS — Backend Service
 Parses EFSA/Wageningen ECRFS library:
   - ECRFS_library_final.mgf  → 102 MS2 spectra
   - ECRFS_metadata_final.csv → toxicological & chemical metadata
@@ -15,7 +15,7 @@ from typing import List, Dict, Optional
 # that is expected for bulk public databases — suppress below ERROR.
 logging.getLogger("matchms").setLevel(logging.ERROR)
 
-DATASETS_DIR = Path(__file__).parent.parent / "datasets" / "neural_safety"
+DATASETS_DIR = Path(__file__).parent.parent / "datasets" / "deep_spectrum"
 MGF_FILE = DATASETS_DIR / "ECRFS_library_final.mgf"
 CSV_FILE  = DATASETS_DIR / "ECRFS_metadata_final.csv"
 
@@ -345,7 +345,7 @@ def list_libraries() -> List[Dict]:
 
 
 def list_chromatograms() -> List[str]:
-    """List all .json chromatogram files in the neural_safety dataset folder."""
+    """List all .json chromatogram files in the deep_spectrum dataset folder."""
     return [f.name for f in sorted(DATASETS_DIR.glob("*.json"))]
 
 
@@ -615,7 +615,7 @@ _broad_status: Dict = {
     "state":     "not_built",   # not_built | building | ready | error
     "progress":  0,             # 0-100
     "n_spectra": 0,
-    "message":   "Index not built yet. POST /neural-safety/build-broad-index to start.",
+    "message":   "Index not built yet. POST /deep-spectrum/build-broad-index to start.",
     "error":     None,
 }
 _broad_vectors: Optional["np.ndarray"] = None
@@ -833,7 +833,7 @@ def spec2vec_broad_match(query_peaks: List[Dict], top_n: int = 10) -> List[Dict]
     import numpy as np
 
     if _broad_vectors is None or _broad_metadata is None:
-        raise RuntimeError("Broad index not ready. Call /neural-safety/build-broad-index first.")
+        raise RuntimeError("Broad index not ready. Call /deep-spectrum/build-broad-index first.")
 
     if not query_peaks:
         return []

@@ -198,10 +198,10 @@ async def feature_importance(request: FeatureImportanceRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 # ──────────────────────────────────────────────────────────────
-#  Neural Safety MS endpoints  (flusso separato)
+#  Deep Spectrum MS endpoints  (flusso separato)
 # ──────────────────────────────────────────────────────────────
 
-from app.neural_safety_service import (
+from app.deep_spectrum_service import (
     get_library as ns_get_library,
     get_spectrum as ns_get_spectrum,
     get_embedding as ns_get_embedding,
@@ -220,8 +220,8 @@ from app.neural_safety_service import (
     massbank_search as ns_massbank_search,
 )
 
-@app.get("/neural-safety/libraries")
-def neural_safety_libraries():
+@app.get("/deep-spectrum/libraries")
+def deep_spectrum_libraries():
     """Lista le librerie spettrali disponibili nella cartella datasets."""
     try:
         return ns_list_libraries()
@@ -229,8 +229,8 @@ def neural_safety_libraries():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/neural-safety/library")
-def neural_safety_library():
+@app.get("/deep-spectrum/library")
+def deep_spectrum_library():
     """Restituisce la libreria EFSA/Wageningen: 102 molecole PMT con metadata unificati."""
     try:
         return ns_get_library()
@@ -238,8 +238,8 @@ def neural_safety_library():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/neural-safety/embedding/{spectrum_id}")
-def neural_safety_embedding(spectrum_id: int):
+@app.get("/deep-spectrum/embedding/{spectrum_id}")
+def deep_spectrum_embedding(spectrum_id: int):
     """Restituisce il vettore 300-D (pseudo Spec2Vec) per una molecola."""
     try:
         return ns_get_embedding(spectrum_id)
@@ -249,8 +249,8 @@ def neural_safety_embedding(spectrum_id: int):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/neural-safety/embeddings-3d")
-def neural_safety_embeddings_3d():
+@app.get("/deep-spectrum/embeddings-3d")
+def deep_spectrum_embeddings_3d():
     """Restituisce le coordinate PCA 3-D per tutte le 102 molecole."""
     try:
         return ns_get_embeddings_3d()
@@ -258,8 +258,8 @@ def neural_safety_embeddings_3d():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/neural-safety/spectrum/{spectrum_id}")
-def neural_safety_spectrum(spectrum_id: int):
+@app.get("/deep-spectrum/spectrum/{spectrum_id}")
+def deep_spectrum_spectrum(spectrum_id: int):
     """Restituisce il set di picchi MS2 completo per una molecola (per indice)."""
     try:
         return ns_get_spectrum(spectrum_id)
@@ -269,8 +269,8 @@ def neural_safety_spectrum(spectrum_id: int):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/neural-safety/project-query-3d")
-async def neural_safety_project_query_3d(request: Request):
+@app.post("/deep-spectrum/project-query-3d")
+async def deep_spectrum_project_query_3d(request: Request):
     """
     Project one or more query MS2 spectra into the ECRFS PCA 3-D space.
     Body: { peaks: [{mz, intensity}], label?: str }
@@ -289,8 +289,8 @@ async def neural_safety_project_query_3d(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/neural-safety/all-embeddings")
-def neural_safety_all_embeddings():
+@app.get("/deep-spectrum/all-embeddings")
+def deep_spectrum_all_embeddings():
     """Restituisce i vettori 300-D per tutte le 102 molecole (per similarity search lato client)."""
     try:
         return ns_get_all_embeddings()
@@ -298,8 +298,8 @@ def neural_safety_all_embeddings():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/neural-safety/chromatograms")
-def neural_safety_list_chromatograms():
+@app.get("/deep-spectrum/chromatograms")
+def deep_spectrum_list_chromatograms():
     """Lista i file cromatogramma JSON disponibili."""
     try:
         return ns_list_chromatograms()
@@ -307,8 +307,8 @@ def neural_safety_list_chromatograms():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/neural-safety/chromatogram/{filename}")
-def neural_safety_get_chromatogram(filename: str):
+@app.get("/deep-spectrum/chromatogram/{filename}")
+def deep_spectrum_get_chromatogram(filename: str):
     """Restituisce un cromatogramma JSON per filename."""
     try:
         return ns_get_chromatogram(filename)
@@ -318,8 +318,8 @@ def neural_safety_get_chromatogram(filename: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/neural-safety/spectral-match")
-async def neural_safety_spectral_match(request: Request):
+@app.post("/deep-spectrum/spectral-match")
+async def deep_spectrum_spectral_match(request: Request):
     """
     Real spectral matching via matchms ModifiedCosine.
     Body: { peaks: [{mz, intensity}], precursor_mz, tolerance?, top_n? }
@@ -341,8 +341,8 @@ async def neural_safety_spectral_match(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/neural-safety/anomaly-score")
-async def neural_safety_anomaly_score(request: Request):
+@app.post("/deep-spectrum/anomaly-score")
+async def deep_spectrum_anomaly_score(request: Request):
     """
     LOF-based anomaly detection in Spec2Vec embedding space.
     Body: { peaks: [{mz, intensity}] }
@@ -359,8 +359,8 @@ async def neural_safety_anomaly_score(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/neural-safety/spec2vec-match")
-async def neural_safety_spec2vec_match(request: Request):
+@app.post("/deep-spectrum/spec2vec-match")
+async def deep_spectrum_spec2vec_match(request: Request):
     """
     Spec2Vec embedding similarity: cosine k-NN in 300-D embedding space.
     Body: { peaks: [{mz, intensity}], top_n? }
@@ -380,8 +380,8 @@ async def neural_safety_spec2vec_match(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/neural-safety/broad-index-status")
-def neural_safety_broad_index_status():
+@app.get("/deep-spectrum/broad-index-status")
+def deep_spectrum_broad_index_status():
     """Returns the build state of the broad Spec2Vec index."""
     try:
         return ns_get_broad_index_status()
@@ -389,8 +389,8 @@ def neural_safety_broad_index_status():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/neural-safety/build-broad-index")
-async def neural_safety_build_broad_index():
+@app.post("/deep-spectrum/build-broad-index")
+async def deep_spectrum_build_broad_index():
     """
     Start building the broad Spec2Vec index in the background (idempotent).
     Returns current status immediately; poll /broad-index-status for progress.
@@ -403,8 +403,8 @@ async def neural_safety_build_broad_index():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/neural-safety/spec2vec-broad-match")
-async def neural_safety_spec2vec_broad_match(request: Request):
+@app.post("/deep-spectrum/spec2vec-broad-match")
+async def deep_spectrum_spec2vec_broad_match(request: Request):
     """
     Spec2Vec similarity search against the broad MassBank index (~8-12k spectra).
     Body: { peaks: [{mz, intensity}], top_n? }
@@ -427,8 +427,8 @@ async def neural_safety_spec2vec_broad_match(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/neural-safety/massbank-search")
-async def neural_safety_massbank_search(request: Request):
+@app.post("/deep-spectrum/massbank-search")
+async def deep_spectrum_massbank_search(request: Request):
     """
     Global spectral identification via MassBank Europe (CosineGreedy similarity).
     Body: { peaks: [{mz, intensity}], precursor_mz, ion_mode?, threshold?, top_n? }

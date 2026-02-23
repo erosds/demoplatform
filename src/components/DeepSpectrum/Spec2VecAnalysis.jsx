@@ -118,7 +118,7 @@ const Spec2VecAnalysis = ({ selectedFile }) => {
   useEffect(() => {
     if (!broadMode) return;
     const poll = () => {
-      fetch(`${BACKEND}/neural-safety/broad-index-status`)
+      fetch(`${BACKEND}/deep-spectrum/broad-index-status`)
         .then((r) => r.json())
         .then((s) => {
           setBroadStatus(s);
@@ -133,7 +133,7 @@ const Spec2VecAnalysis = ({ selectedFile }) => {
   }, [broadMode]);
 
   const handleBuildIndex = () => {
-    fetch(`${BACKEND}/neural-safety/build-broad-index`, { method: "POST" })
+    fetch(`${BACKEND}/deep-spectrum/build-broad-index`, { method: "POST" })
       .then((r) => r.json())
       .then((s) => {
         setBroadStatus(s);
@@ -153,7 +153,7 @@ const Spec2VecAnalysis = ({ selectedFile }) => {
     const results = {};
     for (const peak of chrom.peaks) {
       try {
-        const res = await fetch(`${BACKEND}/neural-safety/spec2vec-broad-match`, {
+        const res = await fetch(`${BACKEND}/deep-spectrum/spec2vec-broad-match`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ peaks: peak.ms2.peaks, top_n: 10 }),
@@ -173,7 +173,7 @@ const Spec2VecAnalysis = ({ selectedFile }) => {
     setChrom(null); setSelectedPeak(null); setAllResults({});
     setActivated(false); setComputing(false); setError(null);
     setBroadResults({}); setBroadActivated(false); setBroadComputing(false);
-    fetch(`${BACKEND}/neural-safety/chromatogram/${selectedFile}`)
+    fetch(`${BACKEND}/deep-spectrum/chromatogram/${selectedFile}`)
       .then((r) => r.json())
       .then((data) => { setChrom(data); if (data.peaks?.length) setSelectedPeak(data.peaks[0]); });
   }, [selectedFile]);
@@ -188,12 +188,12 @@ const Spec2VecAnalysis = ({ selectedFile }) => {
     for (const peak of chrom.peaks) {
       try {
         const [cosineRes, sv2Res] = await Promise.all([
-          fetch(`${BACKEND}/neural-safety/spectral-match`, {
+          fetch(`${BACKEND}/deep-spectrum/spectral-match`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ peaks: peak.ms2.peaks, precursor_mz: peak.precursor_mz, tolerance: 0.01, top_n: 7 }),
           }).then((r) => r.json()),
-          fetch(`${BACKEND}/neural-safety/spec2vec-match`, {
+          fetch(`${BACKEND}/deep-spectrum/spec2vec-match`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ peaks: peak.ms2.peaks, top_n: 7 }),
