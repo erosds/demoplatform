@@ -144,6 +144,7 @@ const SummaryImpact = () => (
             name="ECRFS / Wageningen PMT library"
             size="102 compounds"
             detail="Local reference collection of persistent, mobile, toxic compounds · MS/MS spectra + EFSA toxicological scores · used for classical matching and AI targeted search"
+            href="https://gnps.ucsd.edu/ProteoSAFe/gnpslibrary.jsp?library=ECRFS_DB"
           />
         </div>
 

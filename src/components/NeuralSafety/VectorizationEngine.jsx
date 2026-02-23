@@ -714,7 +714,7 @@ const VectorizationEngine = ({ selectedFile }) => {
                   <div className="flex items-stretch gap-2 flex-1 min-h-0">
 
                     <div className="flex-1 bg-[#0e0e0e] rounded p-3 border border-gray-800 overflow-hidden flex flex-col">
-                      <div className="text-[10px] font-semibold text-purple-400 uppercase tracking-wide mb-2 flex-shrink-0">
+                      <div className="text-[10px] font-semibold text-violet-400 uppercase tracking-wide mb-2 flex-shrink-0">
                         1 · Spectrum
                       </div>
                       <div className="flex items-end gap-0.5 overflow-hidden flex-1">
@@ -743,7 +743,7 @@ const VectorizationEngine = ({ selectedFile }) => {
                       <div className="flex-1 min-h-0 overflow-y-auto flex flex-wrap items-start content-start gap-1"
                         style={{ scrollbarWidth: "none" }}>
                         {(tokens.length ? tokens : ["—", "—", "—", "—", "—", "—"]).map((t, i) => (
-                          <span key={i} className="text-[9px] font-mono bg-gray-800/80 text-gray-400/80 px-1 py-0.5 rounded">
+                          <span key={i} className="text-[9px] font-mono bg-gray-800/80 text-gray-200 px-1 py-0.5 rounded">
                             {t}
                           </span>
                         ))}
@@ -757,7 +757,7 @@ const VectorizationEngine = ({ selectedFile }) => {
                     <Arrow />
 
                     <div className="flex-1 bg-[#0e0e0e] rounded p-3 border border-gray-800 overflow-hidden flex flex-col">
-                      <div className="text-[10px] font-semibold text-indigo-400 uppercase tracking-wide mb-2 flex-shrink-0">
+                      <div className="text-[10px] font-semibold text-violet-400 uppercase tracking-wide mb-2 flex-shrink-0">
                         3 · Embedding
                       </div>
                       <div className="flex-1 min-h-0 overflow-y-auto font-mono text-[9px] text-emerald-400/80 leading-relaxed"
@@ -789,7 +789,7 @@ const VectorizationEngine = ({ selectedFile }) => {
                   ].map(({ label, value }) => (
                     <div key={label} className="bg-[#1a1a1a] rounded p-2 text-center">
                       <div className="text-[10px] text-gray-600 uppercase tracking-wide">{label}</div>
-                      <div className="text-xs text-purple-400/80 font-semibold mt-0.5">{value}</div>
+                      <div className="text-xs text-gray-200 font-semibold mt-0.5">{value}</div>
                     </div>
                   ))}
                 </div>

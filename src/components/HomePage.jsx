@@ -2,7 +2,7 @@ const HomePage = ({ onSelectWorkflow }) => {
   const workflows = [
     {
       id: 'materialsInformatics',
-      label: 'MaterialsAI',
+      label: 'MaterialsFlow',
       tagline: 'materials informatics workflow',
       gradient: 'from-purple-600 via-pink-600 to-red-600'
     },

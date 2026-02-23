@@ -105,13 +105,13 @@ export const workflows = {
       },
       {
         id: 7,
-        title: "summary & impact",
+        title: "summary",
         subtitle: "Platform pipeline recap, scientific foundation, and coverage metrics. Key performance indicators sourced from peer-reviewed literature and authoritative databases.",
         gradient: "from-fuchsia-600 via-purple-600 to-indigo-600",
       },
       {
         id: 8,
-        title: "future perspective",
+        title: "impact & future perspective",
         subtitle: "With proprietary client data — custom spectral libraries, instrument-specific models, historical campaigns — the platform scales into a production-grade, regulatory-ready screening system.",
         gradient: "from-indigo-600 via-blue-600 to-cyan-600",
       },
