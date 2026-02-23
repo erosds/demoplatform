@@ -64,7 +64,7 @@ export const workflows = {
       {
         id: 0,
         title: "overview",
-        subtitle: "Load your LC-MS/MS chromatogram and configure your reference libraries. The platform then walks you through two phases: first, <strong>classical spectral matching</strong> against a large public database and a targeted local library; then, <strong>AI-powered embedding search</strong> that extends identification beyond fixed peak lists — reaching structural analogues and novel unknowns.",
+        subtitle: "When analyzing a compound, one common technique is to separate the molecules present in the sample and then analyze them individually. This technique is called liquid chromatography–tandem mass spectrometry (LC–MS/MS).<br>However, the instrument does not directly provide the names of the molecules. Instead, it generates mass spectra, which must be interpreted to identify and characterize the compounds. This is not a simple process; it requires a combination of chemical expertise and advanced analytical tools. But what if AI could join this process?",        
         gradient: "from-emerald-600 via-green-600 to-teal-600",
       },
       {
