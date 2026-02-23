@@ -1,18 +1,23 @@
-# ProPresent
+# Personal Demo Space — Materials Informatics
 
-Interactive demo platform built with React + Tailwind CSS, featuring horizontal scroll navigation and animated transitions.
+A personal playground to collect and showcase interactive demos around materials informatics and related ML workflows. Built with React + Tailwind CSS, horizontal scroll navigation, animated transitions.
 
-## Workflows
+## Demos
 
-- **Materials Informatics** — Generate, predict, select and validate molecular candidates with interactive SMILES rendering
-- **Neural Safety** — LC-MS/MS chromatogram analysis via classical spectral matching (CosineGreedy, ModifiedCosine) and AI-powered Spec2Vec embedding search against MassBank and curated local libraries
-- **Digital Twin & ML** — Select datasets, train classification models (AdaBoost, Gradient Boosting, Random Forest, Decision Tree) via WebSocket, and evaluate predictions in real-time
+### MaterialsFlow — *materials informatics workflow*
+End-to-end pipeline for accelerating material discovery: generate molecular candidates from chemical space, predict properties with ML/DL models, select top candidates by target criteria (conductivity, stability, toxicity, binding affinity), and validate through computational chemistry. Interactive SMILES rendering throughout.
+
+### PredictLab — *testing station for predictive models*
+Select a dataset, pick one or more classification models (AdaBoost, Gradient Boosting, Random Forest, Decision Tree), watch them train in real-time via WebSocket, then inspect predictions and feature importance.
+
+### DeepSpectrum — *spectra matching with AI*
+LC-MS/MS chromatogram analysis in two phases: classical spectral matching (CosineGreedy against MassBank 20k+ spectra, ModifiedCosine against a curated local library), then AI-powered Spec2Vec embedding search that reaches structural analogues beyond fixed fragment lists. Side-by-side comparative results across all methods.
 
 ## Stack
 
 | Frontend | Backend |
 |---|---|
-| React 19, Tailwind CSS 3 | FastAPI, scikit-learn |
+| React 19, Tailwind CSS | FastAPI, scikit-learn |
 | smiles-drawer | WebSocket (live training) |
 | | matchms, Spec2Vec |
 
@@ -26,59 +31,9 @@ npm install && npm start
 cd backend
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
-# oppure
-python -m app.main
 ```
 
 Frontend: `http://localhost:3000` · Backend: `http://localhost:8000`
-
-## Project Structure
-
-```
-src/
-├── components/
-│   ├── HomePage.jsx              # Workflow selector
-│   ├── TitleDisplay.js           # Animated title transitions
-│   ├── NavigationDots.js         # Dot indicators
-│   ├── NavigationArrows.js       # Arrow navigation
-│   ├── MaterialsInformatics/
-│   │   ├── InteractiveContent.js # Orchestrator
-│   │   ├── MoleculeRenderer.js   # SMILES → canvas rendering
-│   │   ├── IndustriesContent.jsx # Industry cards
-│   │   └── ImpactMetrics.jsx     # Animated KPI counters
-│   ├── NeuralSafety/
-│   │   ├── NeuralSafetyContent.jsx  # Orchestrator
-│   │   ├── OverviewInput.jsx        # Chromatogram upload & config
-│   │   ├── SpectralMatching.jsx     # Classical matching view
-│   │   ├── KnowledgeBaseExplorer.jsx
-│   │   ├── Spec2VecAnalysis.jsx     # AI embedding search
-│   │   ├── AnomalyDetection.jsx
-│   │   ├── ComparativeResults.jsx   # Side-by-side method comparison
-│   │   ├── SummaryImpact.jsx
-│   │   ├── VectorizationEngine.jsx
-│   │   └── FuturePerspective.jsx
-│   └── DigitalTwin/
-│       ├── DigitalTwinContent.jsx
-│       ├── DatasetSelector.jsx
-│       ├── ModelSelector.jsx
-│       ├── TrainingView.jsx      # WebSocket training with live progress
-│       └── FeatureImportanceView.jsx
-├── data/
-│   ├── workflowsData.js          # Workflow/section definitions
-│   ├── sectionsData.js
-│   └── moleculesData.js          # SMILES library
-├── utils/
-│   └── animationConfig.js        # Shared easing & animation helpers
-└── App.js                        # Router + scroll engine
-
-backend/
-├── app/
-│   ├── main.py                   # FastAPI + WebSocket endpoints
-│   ├── ml_service.py             # Train/predict logic
-│   └── models.py                 # Pydantic schemas
-├── datasets/                     # CSV files
-└── trained_models/               # Saved .joblib + metadata
-```
 
 ## Controls
 
