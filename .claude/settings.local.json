@@ -25,7 +25,8 @@
       "Bash(/Library/Frameworks/Python.framework/Versions/3.10/bin/python3:*)",
       "WebFetch(domain:deepwiki.com)",
       "Bash(git reset:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(ls:*)"
     ]
   }
 }

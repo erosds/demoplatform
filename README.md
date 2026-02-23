@@ -5,8 +5,8 @@ Interactive demo platform built with React + Tailwind CSS, featuring horizontal 
 ## Workflows
 
 - **Materials Informatics** — Generate, predict, select and validate molecular candidates with interactive SMILES rendering
+- **Neural Safety** — LC-MS/MS chromatogram analysis via classical spectral matching (CosineGreedy, ModifiedCosine) and AI-powered Spec2Vec embedding search against MassBank and curated local libraries
 - **Digital Twin & ML** — Select datasets, train classification models (AdaBoost, Gradient Boosting, Random Forest, Decision Tree) via WebSocket, and evaluate predictions in real-time
-- **Food & Beverage** — Coming soon
 
 ## Stack
 
@@ -14,6 +14,7 @@ Interactive demo platform built with React + Tailwind CSS, featuring horizontal 
 |---|---|
 | React 19, Tailwind CSS 3 | FastAPI, scikit-learn |
 | smiles-drawer | WebSocket (live training) |
+| | matchms, Spec2Vec |
 
 ## Quick Start
 
@@ -25,7 +26,7 @@ npm install && npm start
 cd backend
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
-# oppure 
+# oppure
 python -m app.main
 ```
 
@@ -41,10 +42,21 @@ src/
 │   ├── NavigationDots.js         # Dot indicators
 │   ├── NavigationArrows.js       # Arrow navigation
 │   ├── MaterialsInformatics/
-│   │   ├── InteractiveContent.js # Materials informatics orchestrator
+│   │   ├── InteractiveContent.js # Orchestrator
 │   │   ├── MoleculeRenderer.js   # SMILES → canvas rendering
 │   │   ├── IndustriesContent.jsx # Industry cards
 │   │   └── ImpactMetrics.jsx     # Animated KPI counters
+│   ├── NeuralSafety/
+│   │   ├── NeuralSafetyContent.jsx  # Orchestrator
+│   │   ├── OverviewInput.jsx        # Chromatogram upload & config
+│   │   ├── SpectralMatching.jsx     # Classical matching view
+│   │   ├── KnowledgeBaseExplorer.jsx
+│   │   ├── Spec2VecAnalysis.jsx     # AI embedding search
+│   │   ├── AnomalyDetection.jsx
+│   │   ├── ComparativeResults.jsx   # Side-by-side method comparison
+│   │   ├── SummaryImpact.jsx
+│   │   ├── VectorizationEngine.jsx
+│   │   └── FuturePerspective.jsx
 │   └── DigitalTwin/
 │       ├── DigitalTwinContent.jsx
 │       ├── DatasetSelector.jsx
