@@ -601,7 +601,7 @@ def _get_massbank_download_url() -> str:
     import urllib.request, json as _json
     req = urllib.request.Request(
         MASSBANK_GITHUB_API,
-        headers={"Accept": "application/vnd.github+json", "User-Agent": "videodemo"},
+        headers={"Accept": "application/vnd.github+json", "User-Agent": "demoplatform"},
     )
     with urllib.request.urlopen(req, timeout=15) as resp:
         data = _json.loads(resp.read())

@@ -26,7 +26,10 @@
       "WebFetch(domain:deepwiki.com)",
       "Bash(git reset:*)",
       "Bash(git commit:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(gh api:*)",
+      "Bash(echo:*)",
+      "Bash(git remote:*)"
     ]
   }
 }
