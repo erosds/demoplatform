@@ -1,17 +1,17 @@
 # Personal Demo Space — Materials Informatics
 
-A personal playground to collect and showcase interactive demos around materials informatics and related ML workflows. Built with React + Tailwind CSS, horizontal scroll navigation, animated transitions.
+A personal playground to collect and showcase interactive demos around materials informatics and related ML workflows. Built with React + Tailwind CSS, Python backend, horizontal scroll navigation, animated transitions.
 
 ## Demos
 
 ### MaterialsFlow — *materials informatics workflow*
-End-to-end pipeline for accelerating material discovery: generate molecular candidates from chemical space, predict properties with ML/DL models, select top candidates by target criteria (conductivity, stability, toxicity, binding affinity), and validate through computational chemistry. Interactive SMILES rendering throughout.
+Showing a demonstration of an end-to-end pipeline for accelerating material discovery: generate molecular candidates from chemical space, predict properties with ML/DL models, select top candidates by target criteria (conductivity, stability, toxicity, binding affinity), and validate through computational chemistry. Interactive SMILES rendering throughout.
 
 ### PredictLab — *testing station for predictive models*
 Select a dataset, pick one or more classification models (AdaBoost, Gradient Boosting, Random Forest, Decision Tree), watch them train in real-time via WebSocket, then inspect predictions and feature importance.
 
 ### DeepSpectrum — *spectra matching with AI*
-LC-MS/MS chromatogram analysis in two phases: classical spectral matching (CosineGreedy against MassBank 20k+ spectra, ModifiedCosine against a curated local library), then AI-powered Spec2Vec embedding search that reaches structural analogues beyond fixed fragment lists. Side-by-side comparative results across all methods.
+LC-MS/MS chromatogram analysis app in two phases: classical spectral matching (CosineGreedy against MassBank 20k+ spectra, ModifiedCosine against a curated local library), then AI-powered Spec2Vec embedding search that reaches structural analogues beyond fixed fragment lists. Side-by-side comparative results across all methods.
 
 ## Stack
 
