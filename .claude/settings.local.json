@@ -29,7 +29,13 @@
       "Bash(ls:*)",
       "Bash(gh api:*)",
       "Bash(echo:*)",
-      "Bash(git remote:*)"
+      "Bash(git remote:*)",
+      "WebFetch(domain:pmc.ncbi.nlm.nih.gov)",
+      "WebFetch(domain:enveurope.springeropen.com)",
+      "WebFetch(domain:academic.oup.com)",
+      "WebFetch(domain:www.umweltbundesamt.de)",
+      "WebFetch(domain:www.norman-network.net)",
+      "WebFetch(domain:link.springer.com)"
     ]
   }
 }

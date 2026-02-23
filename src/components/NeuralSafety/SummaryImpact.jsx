@@ -1,4 +1,4 @@
-import { LuActivity, LuSparkles, LuTrendingUp } from "react-icons/lu";
+import { LuTrendingUp } from "react-icons/lu";
 
 const P1 = "#f97316";   // Phase 1 — classical
 const P2 = "#a855f7";   // Phase 2 — AI
@@ -88,7 +88,6 @@ const SummaryImpact = () => (
         <div className="flex-1 flex flex-col px-5 py-4 border-r border-gray-800 min-w-0 overflow-y-auto"
           style={{ scrollbarWidth: "none" }}>
           <div className="flex items-center gap-2 mb-1 flex-shrink-0">
-            <LuActivity className="w-3 h-3 text-gray-500" />
             <span className="text-[11px] uppercase tracking-widest text-gray-600">Workflow</span>
           </div>
           <Step phase="input" label="Load spectrum"

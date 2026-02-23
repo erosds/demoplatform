@@ -88,13 +88,13 @@ export const workflows = {
       {
         id: 4,
         title: "vectorization",
-        subtitle: "<strong>Spec2Vec</strong> encodes each MS2 spectrum as a 300-dimensional vector, the same idea as Word2Vec for chemical language. Two spectra that share chemical structure will be close in this embedding space, even when they share few exact fragment peaks.",
+        subtitle: "<strong>Spec2Vec</strong> encodes each MS2 spectrum as a 300-dimensional vector, the same idea as Word2Vec, but for chemical language. Two spectra that share chemical structure will be close in this embedding space, even when they share few exact fragment peaks.",
         gradient: "from-purple-600 via-violet-600 to-indigo-600",
       },
       {
         id: 5,
         title: "AI similarity search",
-        subtitle: "The same search over <strong>both</strong> the local curated dataset and the full MassBank catalogue now runs in vector space. Previously unmatched compounds now can become reachable because the comparison is no longer limited to shared fragment lists.",
+        subtitle: "The same search over <strong>both</strong> a local curated dataset and the full MassBank catalogue now runs in vector space. Previously unmatched compounds now can become reachable because the comparison is no longer limited to shared fragment lists.",
         gradient: "from-purple-600 via-violet-600 to-indigo-600",
       },
       {
@@ -112,7 +112,7 @@ export const workflows = {
       {
         id: 8,
         title: "impact & future perspective",
-        subtitle: "With proprietary client data — custom spectral libraries, instrument-specific models, historical campaigns — the platform scales into a production-grade, regulatory-ready screening system.",
+        subtitle: "AI-based identification extends coverage beyond fixed reference libraries. The architecture is designed to scale — from a fast local instance to production-grade systems powered by engines like <strong>SIRIUS</strong>, without changing the workflow logic.",
         gradient: "from-indigo-600 via-blue-600 to-cyan-600",
       },
     ]
