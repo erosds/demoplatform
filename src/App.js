@@ -7,6 +7,7 @@ import HomePage from "./components/HomePage";
 import InteractiveContent from "./components/MaterialsInformatics/InteractiveContent";
 import DigitalTwinContent from "./components/DigitalTwin/DigitalTwinContent";
 import DeepSpectrumContent from "./components/DeepSpectrum/DeepSpectrumContent";
+import DataFusionContent from "./components/DataFusion/DataFusionContent";
 import { workflows } from "./data/workflowsData";
 
 export default function App() {
@@ -166,6 +167,14 @@ export default function App() {
 
       {currentWorkflow === "deepSpectrum" && (
         <DeepSpectrumContent
+          activeIndex={activeIndex}
+          scrollIndex={scrollIndex}
+          totalSections={currentSections.length}
+        />
+      )}
+
+      {currentWorkflow === "dataFusion" && (
+        <DataFusionContent
           activeIndex={activeIndex}
           scrollIndex={scrollIndex}
           totalSections={currentSections.length}

@@ -117,6 +117,35 @@ export const workflows = {
       },
     ]
   },
+  dataFusion: {
+    id: 'dataFusion',
+    sections: [
+      {
+        id: 0,
+        title: "import datasets",
+        subtitle: "Upload one or more <strong>CSV files</strong> to begin. Each file is parsed and inspected: column names, row count, and a preview are shown so you can confirm the data loaded correctly.",
+        gradient: "from-green-600 via-emerald-600 to-teal-600",
+      },
+      {
+        id: 1,
+        title: "align columns",
+        subtitle: "Map columns from each source file to a <strong>unified schema</strong>. Rename columns to a canonical name, exclude irrelevant ones, and choose which column is the <strong>join key</strong> (e.g. SMILES).",
+        gradient: "from-teal-600 via-cyan-600 to-sky-600",
+      },
+      {
+        id: 2,
+        title: "resolve conflicts",
+        subtitle: "Detect and handle data quality issues: <strong>case inconsistencies</strong> (\"Sweet\" vs \"sweet\"), <strong>exact duplicates</strong>, and <strong>key conflicts</strong> (same molecule, different label). Choose a resolution strategy for each category.",
+        gradient: "from-sky-600 via-blue-600 to-indigo-600",
+      },
+      {
+        id: 3,
+        title: "export result",
+        subtitle: "Merge all sources into a <strong>single unified dataset</strong>. Preview the result, inspect the merge statistics, and download the final CSV — ready for model training.",
+        gradient: "from-indigo-600 via-violet-600 to-purple-600",
+      },
+    ]
+  },
   digitalTwin: {
     id: 'digitalTwin',
     sections: [

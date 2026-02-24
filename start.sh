@@ -20,7 +20,7 @@ echo "    Frontend PID: $FRONTEND_PID"
 
 echo ""
 echo "App in esecuzione:"
-echo "  Frontend: http://localhost:3000"
+echo "  Frontend: http://localhost:5173"
 echo "  Backend:  http://localhost:8000"
 echo ""
 echo "Premi Ctrl+C per fermare tutto."

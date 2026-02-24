@@ -18,6 +18,12 @@ const HomePage = ({ onSelectWorkflow }) => {
       tagline: 'spectra matching with AI',
       gradient: 'from-amber-600 via-orange-600 to-red-600'
     },
+    {
+      id: 'dataFusion',
+      label: 'DataFusion',
+      tagline: 'merge & clean heterogeneous datasets',
+      gradient: 'from-green-600 via-emerald-600 to-teal-600'
+    },
   ];
 
   return (
