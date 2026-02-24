@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { LuActivity, LuDatabase, LuFlaskConical } from "react-icons/lu";
+import { LuActivity, LuDatabase, LuFlaskConical, LuInfo } from "react-icons/lu";
 
 const BACKEND = "http://localhost:8000";
 
@@ -334,9 +334,17 @@ const SpectralMatching = ({ selectedFile }) => {
                   {/* Gate: show button centered before first activation */}
                   {!searchEnabled && (
                     <div className="flex-1 flex flex-col items-center justify-center gap-3">
-                      <span className="text-[10px] uppercase tracking-widest text-gray-700">
-                        ModifiedCosine · ECRFS library · 102 PMT spectra
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] uppercase tracking-widest text-gray-700">
+                          ModifiedCosine · ECRFS library · 102 PMT spectra
+                        </span>
+                        <div className="relative group">
+                          <LuInfo className="w-3 h-3 text-gray-700 cursor-pointer hover:text-gray-400 transition-colors" />
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 px-3 py-2 rounded bg-[#1a1a1a] border border-gray-700 text-xs text-gray-400 leading-relaxed pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-xl">
+                            More matched peaks don't always mean a higher score — the score is intensity-weighted, so a few dominant fragments matching perfectly can outscore many weak ones.
+                          </div>
+                        </div>
+                      </div>
                       <button onClick={handleActivate} disabled={!selectedPeak}
                         className="flex items-center gap-2 px-6 py-3 rounded text-sm font-semibold bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 text-white hover:shadow-lg hover:scale-105 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100">
                         <LuFlaskConical className="w-4 h-4" />
@@ -349,9 +357,17 @@ const SpectralMatching = ({ selectedFile }) => {
                   {searchEnabled && (
                     <>
                       <div className="flex items-center justify-between mb-3 flex-shrink-0">
-                        <span className="text-[10px] uppercase tracking-widest text-gray-600">
-                          ModifiedCosine · ECRFS library · 102 PMT spectra
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] uppercase tracking-widest text-gray-600">
+                            ModifiedCosine · ECRFS library · 102 PMT spectra
+                          </span>
+                          <div className="relative group">
+                            <LuInfo className="w-3 h-3 text-gray-700 cursor-pointer hover:text-gray-400 transition-colors" />
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 px-3 py-2 rounded bg-[#1a1a1a] border border-gray-700 text-xs text-gray-400 leading-relaxed pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-xl">
+                              More matched peaks don't always mean a higher score — the score is intensity-weighted, so a few dominant fragments matching perfectly can outscore many weak ones.
+                            </div>
+                          </div>
+                        </div>
                       </div>
 
                       {searching && (

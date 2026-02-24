@@ -25,15 +25,13 @@ const DeepSpectrumContent = ({ activeIndex, scrollIndex, totalSections }) => {
     content = (
       <OverviewInput
         selectedFile={selectedFile}
-        activeLib={activeLib}
         onFileChange={handleFileChange}
-        onLibChange={handleLibChange}
       />
     );
   } else if (activeIndex === 1) {
     content = <AnomalyDetection selectedFile={selectedFile} />;
   } else if (activeIndex === 2) {
-    content = <KnowledgeBaseExplorer activeLib={activeLib} />;
+    content = <KnowledgeBaseExplorer activeLib={activeLib} onLibChange={handleLibChange} />;
   } else if (activeIndex === 3) {
     content = <SpectralMatching selectedFile={selectedFile} activeLib={activeLib} />;
   } else if (activeIndex === 4) {

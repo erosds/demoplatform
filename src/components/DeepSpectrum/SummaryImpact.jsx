@@ -91,10 +91,10 @@ const SummaryImpact = () => (
             <span className="text-[11px] uppercase tracking-widest text-gray-600">Workflow</span>
           </div>
           <Step phase="input" label="Load spectrum"
-            detail="LC-MS/MS chromatogram · automatic peak detection · MS2 per peak"
+            detail="LC-MS/MS chromatogram · automatic peak detection · MS-MS per peak"
             color={PI} />
           <Step phase="1 · A" label="Global screening"
-            detail="CosineGreedy fragment matching vs MassBank Europe · 20,000+ public MS2 spectra · via REST API"
+            detail="CosineGreedy fragment matching vs MassBank Europe · 20,000+ public MS-MS spectra · via REST API"
             color={P1} />
           <Step phase="1 · B" label="Load specific library"
             detail="ECRFS/Wageningen · 102 PMT reference compounds · EFSA toxicological scores"
@@ -118,7 +118,7 @@ const SummaryImpact = () => (
           <DataRow
             name="MassBank Europe"
             size="20,000+ spectra"
-            detail="Public MS2 reference database · queried live via REST API for global screening · NORMAN network"
+            detail="Public MS-MS reference database · queried live via REST API for global screening · NORMAN network"
             href="https://massbank.eu"
           />
           <DataRow
@@ -159,7 +159,7 @@ const SummaryImpact = () => (
           />
           <Ref
             label="Spec2Vec"
-            sub="MS2 embedding via Word2Vec · iomega / Netherlands eScience Center"
+            sub="MS-MS embedding via Word2Vec · iomega / Netherlands eScience Center"
             href="https://github.com/iomega/spec2vec"
           />
           <Ref

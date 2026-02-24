@@ -930,6 +930,20 @@ def massbank_search(
     except Exception:
         return []
 
+    import numpy as np
+    from matchms import Spectrum as _Spec
+    from matchms.filtering import normalize_intensities as _norm_int
+    from matchms.similarity import CosineGreedy as _CG
+
+    # Build normalised query spectrum once (reused for every hit)
+    q_mz  = np.array([p["mz"]        for p in query_peaks], dtype=float)
+    q_int = np.array([p["intensity"]  for p in query_peaks], dtype=float)
+    q_order = np.argsort(q_mz)
+    _q_spec = _Spec(mz=q_mz[q_order], intensities=q_int[q_order],
+                    metadata={"precursor_mz": precursor_mz})
+    _q_spec = _norm_int(_q_spec)
+    _scorer = _CG(tolerance=0.01)
+
     results = []
     seen_names: set = set()
     for h in hits:
@@ -945,12 +959,38 @@ def massbank_search(
             if name.lower() in seen_names:
                 continue
             seen_names.add(name.lower())
+
+            # Compute n_matches locally via CosineGreedy on reference peaks
+            n_matches = 0
+            try:
+                ref_vals = rec.get("peak", {}).get("peak", {}).get("values", [])
+                if ref_vals:
+                    r_mz  = np.array([p["mz"] for p in ref_vals], dtype=float)
+                    r_int = np.array(
+                        [p.get("intensity", p.get("rel", 1)) for p in ref_vals],
+                        dtype=float,
+                    )
+                    r_order  = np.argsort(r_mz)
+                    ref_prec = float(
+                        rec.get("acquisition", {}).get("precursor_mz") or 0.0
+                    )
+                    _r_spec = _Spec(
+                        mz=r_mz[r_order], intensities=r_int[r_order],
+                        metadata={"precursor_mz": ref_prec},
+                    )
+                    _r_spec  = _norm_int(_r_spec)
+                    res      = _scorer.pair(_q_spec, _r_spec)
+                    n_matches = int(res.item()[1])
+            except Exception:
+                n_matches = 0
+
             results.append({
                 "accession": h["accession"],
                 "name":      name,
                 "formula":   cmp.get("formula", "N/A"),
                 "mass":      cmp.get("mass", 0.0),
                 "score":     round(h["score"], 4),
+                "n_matches": n_matches,
             })
             if len(results) >= top_n:
                 break

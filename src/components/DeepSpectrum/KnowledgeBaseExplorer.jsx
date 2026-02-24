@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { LuSearch, LuDatabase, LuActivity, LuTriangleAlert, LuFlaskConical, LuAtom } from "react-icons/lu";
+import { LuSearch, LuDatabase, LuActivity, LuTriangleAlert, LuFlaskConical, LuAtom, LuChevronDown, LuX } from "react-icons/lu";
 
 const BACKEND = "http://localhost:8000";
 
@@ -254,7 +254,7 @@ const LIBRARY_DISPLAY = {
   "ECRFS_library_final": "ECRFS / Wageningen PMT",
 };
 
-const KnowledgeBaseExplorer = ({ activeLib }) => {
+const KnowledgeBaseExplorer = ({ activeLib, onLibChange }) => {
   const [library, setLibrary] = useState([]);
   const [selectedId, setSelectedId] = useState(() => {
     const s = localStorage.getItem("ns_kb_selected");
@@ -266,6 +266,23 @@ const KnowledgeBaseExplorer = ({ activeLib }) => {
   const [specLoading, setSpecLoading] = useState(false);
   const [error, setError] = useState(null);
   const isFirstLoadRef = useRef(true);
+
+  // Library selector state (shown when activeLib is null)
+  const [libs, setLibs] = useState([]);
+  const [libDropOpen, setLibDropOpen] = useState(false);
+  const libRef = useRef(null);
+
+  useEffect(() => {
+    fetch(`${BACKEND}/deep-spectrum/libraries`).then((r) => r.json()).then(setLibs).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const h = (e) => {
+      if (libRef.current && !libRef.current.contains(e.target)) setLibDropOpen(false);
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
 
   // Load full library when activeLib changes; reset compound selection on lib switch
   useEffect(() => {
@@ -316,6 +333,51 @@ const KnowledgeBaseExplorer = ({ activeLib }) => {
 
   const selected = library.find((m) => m.id === selectedId);
 
+  // ── Library selector (shown when no library is selected) ──────────────────
+  if (!activeLib) {
+    return (
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-10 px-12"
+        style={{ paddingTop: "200px", paddingBottom: "100px" }}>
+        <div className="flex flex-col items-center gap-3" style={{ width: 280 }}>
+          <div className="text-[10px] font-semibold uppercase tracking-widest text-gray-500 mb-1.5">
+            Reference spectral library
+          </div>
+          <div ref={libRef} className="relative w-full">
+            <button
+              onClick={() => setLibDropOpen((o) => !o)}
+              className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-[#0e0e0e] border border-gray-800 rounded-lg text-sm transition-colors hover:border-gray-600"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <LuDatabase className="w-4 h-4 flex-shrink-0 text-gray-700" />
+                <span className="truncate text-gray-600">Select a library…</span>
+              </div>
+              <LuChevronDown className={`w-3.5 h-3.5 text-gray-700 flex-shrink-0 transition-transform ${libDropOpen ? "rotate-180" : ""}`} />
+            </button>
+            {libDropOpen && (
+              <div className="absolute z-50 mt-1 w-full bg-[#0e0e0e] border border-gray-800 rounded-lg shadow-2xl max-h-52 overflow-y-auto"
+                style={{ scrollbarWidth: "none" }}>
+                {libs.length === 0 && (
+                  <div className="px-4 py-3 text-[10px] text-gray-600 italic">No libraries found</div>
+                )}
+                {libs.map((lib) => (
+                  <button key={lib.id}
+                    onClick={() => { onLibChange(lib.id); setLibDropOpen(false); }}
+                    className="w-full text-left px-4 py-2.5 text-xs border-b border-gray-800/40 last:border-0 transition-colors text-gray-500 hover:bg-white/[0.03]">
+                    <div>{LIBRARY_DISPLAY[lib.id] ?? lib.id}</div>
+                    <div className="text-[9px] text-gray-700 mt-0.5 font-mono">
+                      {lib.has_metadata ? "full metadata" : "spectra only"}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Normal KB view ─────────────────────────────────────────────────────────
   return (
     <div
       className="absolute rounded inset-0 flex items-center justify-center px-12"
@@ -330,7 +392,14 @@ const KnowledgeBaseExplorer = ({ activeLib }) => {
             <div className="text-[9px] uppercase tracking-widest text-gray-600 mb-1.5">Reference Library</div>
             <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#1a1a1a] border border-gray-800 rounded text-xs text-amber-300/70 font-mono">
               <LuDatabase className="w-3 h-3 text-amber-500/60 flex-shrink-0" />
-              <span className="truncate">{activeLib ? (LIBRARY_DISPLAY[activeLib] ?? activeLib) : "—"}</span>
+              <span className="truncate flex-1">{LIBRARY_DISPLAY[activeLib] ?? activeLib}</span>
+              <button
+                onClick={() => onLibChange(null)}
+                className="flex-shrink-0 text-gray-700 hover:text-gray-400 transition-colors ml-1"
+                title="Change library"
+              >
+                <LuX className="w-3 h-3" />
+              </button>
             </div>
           </div>
 
@@ -415,12 +484,7 @@ const KnowledgeBaseExplorer = ({ activeLib }) => {
 
         {/* ── MAIN PANEL ──────────────────────────────────────── */}
         <div className="flex-1 flex flex-col overflow-hidden bg-[#111111]">
-          {!activeLib ? (
-            <div className="flex-1 flex flex-col items-center justify-center gap-1.5 text-center px-6">
-              <div className="text-gray-700 text-xs">No reference library selected</div>
-              <div className="text-[10px] text-gray-800">Return to the Overview tab to configure your inputs.</div>
-            </div>
-          ) : !selected ? (
+          {!selected ? (
             <div className="flex-1 flex items-center justify-center text-gray-600 text-sm">
               Select a compound from the sidebar
             </div>

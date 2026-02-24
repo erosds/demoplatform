@@ -70,13 +70,13 @@ export const workflows = {
       {
         id: 1,
         title: "global screening",
-        subtitle: "Each peak in your chromatogram is compared against <strong>MassBank Europe</strong> (20,000+ public MS2 spectra) using <strong>CosineGreedy</strong> fragment similarity. This fast, established approach gives you a first-pass identification against the broadest publicly available reference.",
+        subtitle: "Each peak in your chromatogram is compared against <strong>MassBank Europe</strong> (20,000+ public mass spectra) using <strong>CosineGreedy</strong> fragment similarity. This fast, established approach gives you a first-pass identification against the broadest publicly available reference.",
         gradient: "from-amber-600 via-orange-600 to-red-600",
       },
       {
         id: 2,
         title: "knowledge base",
-        subtitle: "Load a curated, domain-specific reference collection. For example, the <strong>ECRFS/Wageningen library</strong> of 102 PMT (persistent, mobile, toxic) compounds is a regulatory-grade baseline — each entry annotated with MS/MS spectra, exact masses, and EFSA toxicological scores.",
+        subtitle: "Load a curated, domain-specific reference collection. For example, the <strong>ECRFS/Wageningen library</strong> of 102 PMT (persistent, mobile, toxic) compounds is a regulatory-grade baseline — each entry annotated with spectra, exact masses, and toxicological scores.",
         gradient: "from-amber-600 via-orange-600 to-red-600",
       },
       {
@@ -88,7 +88,7 @@ export const workflows = {
       {
         id: 4,
         title: "vectorization",
-        subtitle: "<strong>Spec2Vec</strong> encodes each MS2 spectrum as a 300-dimensional vector, the same idea as Word2Vec, but for chemical language. Two spectra that share chemical structure will be close in this embedding space, even when they share few exact fragment peaks.",
+        subtitle: "<strong>Spec2Vec</strong> encodes each mass spectrum as a 300-dimensional vector, the same idea as Word2Vec, but for chemical language. Two spectra that share chemical structure will be close in this embedding space, even when they share few exact fragment peaks.",
         gradient: "from-purple-600 via-violet-600 to-indigo-600",
       },
       {

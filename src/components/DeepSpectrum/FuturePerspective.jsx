@@ -156,7 +156,7 @@ const FuturePerspective = () => (
                 color: "#a855f7",
               },
               {
-                title: "Foundation models for MS2",
+                title: "Foundation models for MS-MS",
                 desc: "Large transformer-based models pretrained on millions of spectra (MS2Mol, MIST, MassFormer) as a natural next step beyond Spec2Vec — higher resolution on novel structure elucidation.",
                 tag: "Emerging",
                 color: "#f59e0b",

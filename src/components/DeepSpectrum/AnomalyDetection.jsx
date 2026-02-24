@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { LuActivity, LuDatabase, LuGlobe } from "react-icons/lu";
+import { LuActivity, LuDatabase, LuGlobe, LuInfo } from "react-icons/lu";
 
 const BACKEND = "http://localhost:8000";
 
@@ -325,9 +325,17 @@ const AnomalyDetection = ({ selectedFile }) => {
                   {/* Gate: button before first activation */}
                   {!activated && (
                     <div className="flex-1 flex flex-col items-center justify-center gap-3">
-                      <span className="text-[10px] uppercase tracking-widest text-gray-700">
-                        CosineGreedy · MassBank Europe 20,000+ spectra
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] uppercase tracking-widest text-gray-700">
+                          CosineGreedy · MassBank Europe 20,000+ spectra
+                        </span>
+                        <div className="relative group">
+                          <LuInfo className="w-3 h-3 text-gray-700 cursor-pointer hover:text-gray-400 transition-colors" />
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 px-3 py-2 rounded bg-[#1a1a1a] border border-gray-700 text-xs text-gray-400 leading-relaxed pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-xl">
+                            Greedy Cosine matches peaks within an m/z tolerance and prioritizes the most intense pairs to compute a normalized cosine score (0–1). A few shared high-intensity peaks can produce a high score even if the overall spectra are largely different.
+                          </div>
+                        </div>
+                      </div>
                       <button onClick={handleActivate} disabled={!selectedPeak}
                         className="flex items-center gap-2 px-6 py-3 rounded text-sm font-semibold bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 text-white hover:shadow-lg hover:scale-105 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100">
                         <LuGlobe className="w-4 h-4" />
@@ -340,9 +348,17 @@ const AnomalyDetection = ({ selectedFile }) => {
                   {activated && (
                     <>
                       <div className="flex items-center justify-between mb-3 flex-shrink-0">
-                        <span className="text-[10px] uppercase tracking-widest text-gray-600">
-                          CosineGreedy · MassBank Europe
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] uppercase tracking-widest text-gray-600">
+                            CosineGreedy · MassBank Europe
+                          </span>
+                          <div className="relative group">
+                            <LuInfo className="w-3 h-3 text-gray-700 cursor-pointer hover:text-gray-400 transition-colors" />
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 px-3 py-2 rounded bg-[#1a1a1a] border border-gray-700 text-[10px] text-gray-400 leading-relaxed pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-xl">
+                              Greedy Cosine matches peaks within an m/z tolerance and prioritizes the most intense pairs to compute a normalized cosine score (0–1). A few shared high-intensity peaks can produce a high score even if the overall spectra are largely different.
+                            </div>
+                          </div>
+                        </div>
                         {computing && (
                           <span className="text-[10px] text-orange-600/60 font-mono">
                             {Object.keys(allResults).length} / {chrom?.peaks?.length ?? 0} peaks
@@ -382,10 +398,9 @@ const AnomalyDetection = ({ selectedFile }) => {
 
                           {/* Best match card */}
                           {currentHits.length > 0 && (() => {
-                            const best    = currentHits[0];
-                            const col     = scoreColor(best.score);
-                            const cat     = scoreCategory(best.score);
-                            const hitsPct = (currentHits.length / 5) * 100;
+                            const best = currentHits[0];
+                            const col  = scoreColor(best.score);
+                            const cat  = scoreCategory(best.score);
                             return (
                               <div className="rounded border flex-shrink-0"
                                 style={{ borderColor: col + "55", background: col + "0c" }}>
@@ -422,17 +437,20 @@ const AnomalyDetection = ({ selectedFile }) => {
 
                                   <div>
                                     <div className="flex justify-between items-baseline mb-1">
-                                      <span className="text-[10px] text-gray-500 uppercase tracking-wide">Database hits</span>
+                                      <span className="text-[10px] text-gray-500 uppercase tracking-wide">Matched fragments</span>
                                       <span className="text-sm font-bold font-mono" style={{ color: col }}>
-                                        {currentHits.length} <span className="text-[10px] text-gray-600">compounds</span>
+                                        {best.n_matches ?? 0} <span className="text-[10px] text-gray-600">peaks</span>
                                       </span>
                                     </div>
                                     <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
                                       <div className="h-full rounded-full transition-all"
-                                        style={{ width: `${hitsPct}%`, backgroundColor: col + "bb" }} />
+                                        style={{ width: `${Math.min(100, ((best.n_matches ?? 0) / 40) * 100)}%`, backgroundColor: col + "bb" }} />
                                     </div>
                                     <div className="text-[9px] text-gray-700 mt-0.5">
-                                      unique compounds returned (top 5)
+                                      threshold for confirmation: ≥ 10 matched peaks
+                                      {(best.n_matches ?? 0) < 10 && (
+                                        <span style={{ color: col }}> — high score may be coincidental overlap</span>
+                                      )}
                                     </div>
                                   </div>
 
@@ -448,11 +466,12 @@ const AnomalyDetection = ({ selectedFile }) => {
                                 <span className="w-4" />
                                 <span className="flex-1">Compound</span>
                                 <span className="w-28 text-right">Score</span>
-                                <span className="w-20 text-right">Mass (Da)</span>
+                                <span className="w-28 text-right">Fragments</span>
                               </div>
                               <div className="flex flex-col gap-1">
                                 {currentHits.map((hit, rank) => {
                                   const col = scoreColor(hit.score);
+                                  const fragPct = Math.min(100, ((hit.n_matches ?? 0) / 40) * 100);
                                   return (
                                     <div key={hit.accession} className="flex items-center gap-4 px-3 py-2 bg-[#0e0e0e] rounded border border-gray-800/60">
                                       <span className="text-[10px] text-gray-600 w-4 flex-shrink-0">{rank + 1}</span>
@@ -472,8 +491,17 @@ const AnomalyDetection = ({ selectedFile }) => {
                                             style={{ width: `${hit.score * 100}%`, backgroundColor: col }} />
                                         </div>
                                       </div>
-                                      <div className="w-20 flex-shrink-0 text-right">
-                                        <span className="text-[9px] font-mono text-gray-500">{hit.mass.toFixed(4)}</span>
+                                      <div className="w-28 flex-shrink-0">
+                                        <div className="flex justify-between text-[9px] mb-0.5">
+                                          <span className="text-gray-700">frag</span>
+                                          <span className="font-mono" style={{ color: col }}>
+                                            {hit.n_matches ?? 0}
+                                          </span>
+                                        </div>
+                                        <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
+                                          <div className="h-full rounded-full"
+                                            style={{ width: `${fragPct}%`, backgroundColor: col + "bb" }} />
+                                        </div>
                                       </div>
                                     </div>
                                   );
