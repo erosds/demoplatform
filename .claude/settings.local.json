@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:zenodo.org)",
+      "Bash(cd:*)",
+      "Bash(echo gensim not found via pip:*)",
+      "Bash(where uvicorn:*)",
+      "Bash(py:*)",
+      "Bash(/c/Users/edesimon/AppData/Local/Programs/Python/Python312/python.exe:*)",
+      "Bash(\"C:/Users/edesimon/VSProjects/demoplatform/backend/.venv/Scripts/python.exe\":*)",
+      "Bash(\"C:/Users/edesimon/VSProjects/demoplatform/backend/.venv/Scripts/pip.exe\" install:*)",
+      "Bash(curl:*)",
+      "Bash(PYTHONPATH=\"C:/Users/edesimon/VSProjects/demoplatform/backend\" \"C:/Users/edesimon/VSProjects/demoplatform/backend/.venv/Scripts/python.exe\":*)",
+      "Bash(PYTHONPATH=\"C:/Users/edesimon/VSProjects/demoplatform/backend\" \"C:/Users/edesimon/AppData/Local/Programs/Python/Python312/python.exe\":*)",
+      "Bash(\"C:/Users/edesimon/AppData/Local/Programs/Python/Python312/python.exe\":*)",
+      "Bash(powershell:*)",
+      "Bash(grep :8000 :*)",
+      "Bash(netstat:*)"
+    ]
+  }
+}
