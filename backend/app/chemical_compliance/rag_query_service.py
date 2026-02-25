@@ -32,15 +32,22 @@ MAX_HISTORY_TURNS = 3  # last N user+assistant pairs to include
 _SYSTEM_PROMPT = """\
 You are ChemAssist, a compliance assistant for industrial QA/QC laboratories.
 You help analysts, chemists, and quality managers with SOPs, SDS sheets, \
-regulations, Certificates of Analysis, and analytical methods.
+regulations, Certificates of Analysis, analytical methods, and any document \
+uploaded to the knowledge base (including aroma lists, ingredient tables, \
+specification sheets, etc.).
 
 RULES:
-- Answer ONLY from the retrieved context provided. Never invent facts, limits, or codes.
+- Answer ONLY from the retrieved context provided below. Never invent facts.
 - Cite every factual claim inline as [filename / section].
-- If the answer is not in the context: say "I could not find this in the loaded documents." \
-and suggest which document type to upload (SOP, SDS, REGULATION, METHOD, or COA).
-- Be concise and structured. Use bullet points for H/P codes, exposure limits, or procedure steps.
-- For greetings or off-topic questions: introduce yourself in 2 sentences and list 3 things you can help with.
+- The context may be in a different language than the query — translate/summarise as needed.
+- If the context contains partial information, report what you found rather than \
+saying you found nothing. Example: "The document lists entries such as X, Y, Z …"
+- If the answer is truly absent from the context: say \
+"I could not find this in the loaded documents." and suggest which document \
+type to upload (SOP, SDS, REGULATION, METHOD, COA, or OTHER).
+- Be concise and structured. Use bullet points when listing items.
+- Greetings only: introduce yourself in one sentence and list 3 things you can help with. \
+Do NOT treat content questions as greetings.
 - Never make GMP release decisions or batch disposition recommendations.
 """
 
@@ -121,48 +128,38 @@ def retrieve(
     return chunks
 
 
-# ── Prompt building ────────────────────────────────────────────────────────────
+# ── Chat message building ───────────────────────────────────────────────────────
 
-def _build_conversation_context(messages: List[Dict]) -> str:
-    """Format the last N turns as conversation history."""
-    if not messages:
-        return ""
-    # Take last MAX_HISTORY_TURNS * 2 messages (user + assistant pairs)
-    recent = messages[-(MAX_HISTORY_TURNS * 2):]
-    lines = ["CONVERSATION HISTORY:"]
-    for msg in recent:
-        role = "User" if msg["role"] == "user" else "Assistant"
-        content = msg["content"]
-        # Truncate long assistant messages to keep prompt size manageable
-        if len(content) > 400:
-            content = content[:400] + "…"
-        lines.append(f"{role}: {content}")
-    return "\n".join(lines)
-
-
-def _build_prompt(
+def _build_messages(
     query: str,
     chunks: List[Dict[str, Any]],
-    messages: List[Dict],
-) -> str:
-    parts = [_SYSTEM_PROMPT]
+    history: List[Dict],
+) -> List[Dict[str, str]]:
+    """
+    Build the messages list for Ollama api/chat.
+    Structure: system → (history turns) → user (context + query)
+    """
+    result: List[Dict[str, str]] = [{"role": "system", "content": _SYSTEM_PROMPT}]
 
-    history = _build_conversation_context(messages)
-    if history:
-        parts.append(history)
+    # Conversation history — last N turns, truncating long assistant replies
+    for msg in history[-(MAX_HISTORY_TURNS * 2):]:
+        content = msg["content"]
+        if msg["role"] == "assistant" and len(content) > 500:
+            content = content[:500] + "…"
+        result.append({"role": msg["role"], "content": content})
 
+    # Context block + query as the final user message
     if chunks:
-        context_parts = []
-        for i, c in enumerate(chunks, 1):
-            context_parts.append(
-                f"[{i}] {c['source_file']} / {c['section_title']}\n{c['text']}"
-            )
-        parts.append("RETRIEVED CONTEXT:\n" + "\n\n---\n\n".join(context_parts))
+        context_parts = [
+            f"[{i}] {c['source_file']} / {c['section_title']}\n{c['text']}"
+            for i, c in enumerate(chunks, 1)
+        ]
+        context_block = "RETRIEVED CONTEXT:\n" + "\n\n---\n\n".join(context_parts)
     else:
-        parts.append("RETRIEVED CONTEXT: (none — no relevant documents found)")
+        context_block = "RETRIEVED CONTEXT: (none — no relevant documents found)"
 
-    parts.append(f"USER QUERY: {query}\n\nASSISTANT:")
-    return "\n\n".join(parts)
+    result.append({"role": "user", "content": f"{context_block}\n\nUSER QUERY: {query}"})
+    return result
 
 
 # ── Entity extraction ──────────────────────────────────────────────────────────
@@ -254,12 +251,12 @@ async def stream_query_pipeline(
                              "confidence": 0.0, "unique_sources": 0})
         return
 
-    # 4. Build prompt with history
+    # 4. Build chat messages
     if mode == "regulatory":
         _, chunks = apply_regulatory_constraints(chunks, "", query)
-    prompt = _build_prompt(query, chunks, messages)
+    chat_messages = _build_messages(query, chunks, messages)
 
-    # 5. Stream tokens from Ollama
+    # 5. Stream tokens from Ollama via api/chat
     full_response = ""
     try:
         if not _HTTPX_OK:
@@ -267,14 +264,14 @@ async def stream_query_pipeline(
         async with httpx.AsyncClient(timeout=180) as client:
             async with client.stream(
                 "POST",
-                f"{OLLAMA_URL}/api/generate",
-                json={"model": LLM_MODEL, "prompt": prompt, "stream": True},
+                f"{OLLAMA_URL}/api/chat",
+                json={"model": LLM_MODEL, "messages": chat_messages, "stream": True},
             ) as resp:
                 async for line in resp.aiter_lines():
                     if not line:
                         continue
                     data = json.loads(line)
-                    token = data.get("response", "")
+                    token = data.get("message", {}).get("content", "")
                     if token:
                         full_response += token
                         yield {"type": "token", "content": token}
@@ -342,17 +339,17 @@ def query_pipeline(
     if mode == "regulatory":
         _, chunks = apply_regulatory_constraints(chunks, "", query)
 
-    prompt = _build_prompt(query, chunks, messages)
+    chat_messages = _build_messages(query, chunks, messages)
 
     if not _REQUESTS_OK:
         raise RuntimeError("requests not installed")
     resp = _requests.post(
-        f"{OLLAMA_URL}/api/generate",
-        json={"model": LLM_MODEL, "prompt": prompt, "stream": False},
+        f"{OLLAMA_URL}/api/chat",
+        json={"model": LLM_MODEL, "messages": chat_messages, "stream": False},
         timeout=180,
     )
     resp.raise_for_status()
-    answer = resp.json().get("response", "").strip()
+    answer = resp.json().get("message", {}).get("content", "").strip()
 
     scores = [c["score"] for c in chunks]
     avg_score = sum(scores) / len(scores) if scores else 0.0

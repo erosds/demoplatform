@@ -81,83 +81,84 @@ def _embed(texts: List[str]) -> List[List[float]]:
 
 
 def _parse_content(name: str, content: str) -> str:
-    """Parse file content. Tries base64 PDF/DOCX, falls back to plain text."""
+    """Parse file content based on extension. PDFs/DOCX arrive as base64."""
     lower = name.lower()
-
-    # Try base64 decode
-    try:
-        raw = base64.b64decode(content)
-    except Exception:
-        # Already plain text
-        return content
 
     if lower.endswith(".pdf"):
         if not _PDF_OK:
             raise RuntimeError("pdfminer.six not installed. Run: pip install pdfminer.six")
+        raw = base64.b64decode(content)
         return _pdf_extract(io.BytesIO(raw))
 
     if lower.endswith(".docx"):
         if not _DOCX_OK:
             raise RuntimeError("python-docx not installed. Run: pip install python-docx")
+        raw = base64.b64decode(content)
         doc = _DocxDocument(io.BytesIO(raw))
         return "\n".join(p.text for p in doc.paragraphs if p.text.strip())
 
-    # Unknown binary — treat as UTF-8 text
-    try:
-        return raw.decode("utf-8")
-    except Exception:
-        return content
+    # Plain text (.txt and anything else)
+    return content
 
 
 def _smart_chunk(text: str) -> List[Dict[str, str]]:
     """
-    Split text into chunks of ~CHUNK_SIZE chars with CHUNK_OVERLAP.
-    Never splits H/P code lines from adjacent context: if a chunk ends
-    mid-sentence containing an H/P code, merge with the next chunk.
+    Split text into chunks of ~CHUNK_SIZE chars with CHUNK_OVERLAP lines.
+    Section titles are detected conservatively (ALL-CAPS or ends with ':')
+    to avoid fragmenting list-style documents into single-line chunks.
+    Never splits H/P code lines from adjacent context.
     Returns list of {text, section_title}.
     """
-    # Split into lines; detect section titles (short lines ending with common markers)
-    lines = text.splitlines()
+    lines = [l.strip() for l in text.splitlines() if l.strip()]
     chunks: List[Dict[str, str]] = []
     current_section = "General"
-    current_buf = []
-    current_len = 0
+    buf: List[str] = []
+    buf_len = 0
 
-    def flush(buf, section):
+    # Conservative title detection: all-caps words only, or explicit "SECTION N:" pattern
+    _title_re = re.compile(r'^(?:[A-Z][A-Z\s\d\-/]{2,}:|SECTION\s+\d|SEZIONE\s+\d)', re.IGNORECASE)
+
+    def flush():
         joined = "\n".join(buf).strip()
         if joined:
-            chunks.append({"text": joined, "section_title": section})
+            chunks.append({"text": joined, "section_title": current_section})
 
     for line in lines:
-        stripped = line.strip()
-        if not stripped:
-            continue
+        words = line.split()
 
-        # Heuristic: a line is a section title if ≤80 chars and ends with ":" or is all-uppercase
-        is_title = (len(stripped) <= 80 and (stripped.endswith(":") or stripped.isupper() or stripped.endswith(".")==False and len(stripped.split()) <= 6))
-        if is_title and len(stripped) > 3:
-            if current_buf and current_len > CHUNK_SIZE // 4:
-                flush(current_buf, current_section)
-                current_buf = []
-                current_len = 0
-            current_section = stripped.rstrip(":")
+        # A section title: matches pattern AND is short AND not a list item (no leading digit/bullet)
+        is_title = (
+            len(line) <= 70
+            and len(words) <= 8
+            and not re.match(r'^[\d\-\*\•]', line)
+            and (_title_re.match(line) or (line.isupper() and len(words) <= 6))
+        )
 
-        current_buf.append(stripped)
-        current_len += len(stripped) + 1
+        if is_title:
+            # Flush current buffer when it has enough content
+            if buf and buf_len >= CHUNK_SIZE // 4:
+                flush()
+                # Keep last few lines as overlap for continuity
+                overlap = buf[-3:]
+                buf = overlap
+                buf_len = sum(len(l) + 1 for l in buf)
+            current_section = line.rstrip(":")
 
-        if current_len >= CHUNK_SIZE:
-            # Check if the last line contains an H/P code — if so, don't split yet
-            last_line = current_buf[-1] if current_buf else ""
-            if _HP_PATTERN.search(last_line):
-                continue  # accumulate more to keep H/P code in context
-            flush(current_buf[-CHUNK_OVERLAP // 80:] if CHUNK_OVERLAP else [], current_section)
-            # Keep overlap
-            overlap_lines = current_buf[-(CHUNK_OVERLAP // max(1, max(len(l) for l in current_buf[-5:] or ["x"]))):]
-            current_buf = overlap_lines if overlap_lines else []
-            current_len = sum(len(l) + 1 for l in current_buf)
+        buf.append(line)
+        buf_len += len(line) + 1
 
-    if current_buf:
-        flush(current_buf, current_section)
+        if buf_len >= CHUNK_SIZE:
+            # Don't split if current line has an H/P code
+            if _HP_PATTERN.search(line):
+                continue
+            flush()
+            # Overlap: keep last 3 lines
+            overlap = buf[-3:]
+            buf = overlap
+            buf_len = sum(len(l) + 1 for l in buf)
+
+    if buf:
+        flush()
 
     return chunks if chunks else [{"text": text[:CHUNK_SIZE], "section_title": "General"}]
 

@@ -51,6 +51,31 @@ const EntityChips = ({ entities }) => {
 };
 
 // ── Sources accordion ──────────────────────────────────────────────────────────
+const SourceEntry = ({ s }) => {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="text-[10px] text-gray-500">
+      <div className="flex items-center gap-1">
+        {s.text_snippet && (
+          <button onClick={() => setExpanded((o) => !o)} className="text-gray-700 hover:text-gray-500 transition-colors">
+            {expanded ? <LuChevronDown className="w-2.5 h-2.5" /> : <LuChevronRight className="w-2.5 h-2.5" />}
+          </button>
+        )}
+        <span className="text-gray-400 font-mono">{s.source_file}</span>
+        {s.section_title && (
+          <span className="text-gray-600"> / {s.section_title}</span>
+        )}
+        <span className="text-gray-700 ml-1">({Math.round(s.score * 100)}%)</span>
+      </div>
+      {expanded && s.text_snippet && (
+        <pre className="mt-1 ml-3.5 text-[10px] text-gray-600 whitespace-pre-wrap font-mono leading-relaxed border-l border-gray-800 pl-2">
+          {s.text_snippet}
+        </pre>
+      )}
+    </div>
+  );
+};
+
 const SourcesAccordion = ({ sources }) => {
   const [open, setOpen] = useState(false);
   if (!sources?.length) return null;
@@ -64,16 +89,8 @@ const SourcesAccordion = ({ sources }) => {
         {sources.length} source{sources.length !== 1 ? "s" : ""}
       </button>
       {open && (
-        <div className="mt-1 flex flex-col gap-1 pl-3 border-l border-gray-800">
-          {sources.map((s, i) => (
-            <div key={i} className="text-[10px] text-gray-500">
-              <span className="text-gray-400 font-mono">{s.source_file}</span>
-              {s.section_title && (
-                <span className="text-gray-600"> / {s.section_title}</span>
-              )}
-              <span className="text-gray-700 ml-1">({Math.round(s.score * 100)}%)</span>
-            </div>
-          ))}
+        <div className="mt-1 flex flex-col gap-2 pl-3 border-l border-gray-800">
+          {sources.map((s, i) => <SourceEntry key={i} s={s} />)}
         </div>
       )}
     </div>
