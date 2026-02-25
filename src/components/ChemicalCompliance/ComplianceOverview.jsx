@@ -39,16 +39,8 @@ const ComplianceOverview = () => {
       style={{ paddingTop: "220px", paddingBottom: "100px" }}
     >
       <div className="w-full max-w-3xl">
-        {/* Intro */}
-        <p className="text-sm text-gray-400 leading-relaxed mb-8">
-          A fully local Retrieval-Augmented Generation assistant for industrial QA/QC laboratories.
-          Upload SOPs, SDS sheets, regulatory documents, analytical methods, and Certificates of Analysis.
-          Ask compliance questions and receive answers grounded in your own document corpus —
-          with source citations and confidence scores.
-        </p>
-
         {/* Feature grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           {features.map((f) => (
             <div
               key={f.title}

@@ -152,7 +152,7 @@ export const workflows = {
       {
         id: 0,
         title: "overview",
-        subtitle: "A fully <strong>local RAG assistant</strong> for industrial QA/QC laboratories. Upload SOPs, SDS sheets, regulatory documents, and Certificates of Analysis. Ask compliance questions and receive answers grounded in your own document corpus — with source citations and confidence scores. All processing stays on your machine.",
+        subtitle: "A fully <strong>local conversational assistant</strong> for industrial QA/QC laboratories. Upload SOPs, SDS sheets, regulatory documents, and Certificates of Analysis. Ask compliance questions and receive answers grounded in your own document corpus. All processing stays on your machine.",
         gradient: "from-green-700 via-emerald-600 to-teal-700",
       },
       {

@@ -1,11 +1,136 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import { LuCloudUpload, LuX, LuFileText, LuTrash2 } from "react-icons/lu";
+import {
+  LuCloudUpload,
+  LuX,
+  LuFileText,
+  LuTrash2,
+  LuChevronDown,
+  LuEye,
+} from "react-icons/lu";
 
 const BACKEND = "http://localhost:8000";
 
-const DOC_TYPES = ["SOP", "SDS", "REGULATION", "METHOD", "COA"];
+const DOC_TYPES = ["SOP", "SDS", "REGULATION", "METHOD", "COA", "OTHER"];
 const MATRIX_TYPES = ["cosmetic", "food", "solvent", "polymer", "pharma", "general"];
 
+// ── Custom dropdown ─────────────────────────────────────────────────────────────
+const MatrixDropdown = ({ value, onChange }) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-2 px-3 py-1 rounded text-[10px] font-mono border bg-white/5 border-gray-700 text-gray-300 hover:border-gray-600 transition-colors min-w-[90px] justify-between"
+      >
+        <span>{value}</span>
+        <LuChevronDown
+          className={`w-3 h-3 text-gray-500 transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      {open && (
+        <div className="absolute top-full mt-1 left-0 bg-[#141414] border border-gray-700 rounded shadow-xl z-20 min-w-[110px] overflow-hidden">
+          {MATRIX_TYPES.map((m) => (
+            <button
+              key={m}
+              onClick={() => { onChange(m); setOpen(false); }}
+              className={`w-full text-left px-3 py-1.5 text-[10px] font-mono transition-colors hover:bg-white/5 ${
+                m === value ? "text-teal-300" : "text-gray-400"
+              }`}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── Preview dialog ─────────────────────────────────────────────────────────────
+const PreviewDialog = ({ doc, content, onClose }) => {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const typeColor = {
+    SOP: "text-teal-400",
+    SDS: "text-amber-400",
+    REGULATION: "text-purple-400",
+    METHOD: "text-blue-400",
+    COA: "text-green-400",
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/60"
+      onClick={onClose}
+    >
+      <div
+        className="relative bg-[#111] border border-gray-700 rounded-lg w-full max-w-2xl mx-6 shadow-2xl flex flex-col"
+        style={{ maxHeight: "75vh" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-800 flex-shrink-0">
+          <div>
+            <div className="text-sm text-gray-200 font-mono">{doc.name}</div>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className={`text-[10px] font-mono ${typeColor[doc.document_type] || "text-gray-400"}`}>
+                {doc.document_type}
+              </span>
+              <span className="text-[10px] text-gray-700">·</span>
+              <span className="text-[10px] text-gray-500">{doc.matrix_type}</span>
+              <span className="text-[10px] text-gray-700">·</span>
+              <span className="text-[10px] text-gray-500">rev {doc.revision}</span>
+              {doc.upload_date && (
+                <>
+                  <span className="text-[10px] text-gray-700">·</span>
+                  <span className="text-[10px] text-gray-600">
+                    {new Date(doc.upload_date).toLocaleDateString()}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-600 hover:text-gray-300 transition-colors p-1"
+          >
+            <LuX className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 no-scrollbar">
+          {content ? (
+            <pre className="text-[11px] text-gray-400 whitespace-pre-wrap leading-relaxed font-mono">
+              {content}
+            </pre>
+          ) : (
+            <div className="text-xs text-gray-600 text-center mt-10">
+              Full text not available — document was ingested in a previous session.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Main component ─────────────────────────────────────────────────────────────
 const DocumentUpload = ({ onDocsChange }) => {
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -14,7 +139,10 @@ const DocumentUpload = ({ onDocsChange }) => {
   const [matrixType, setMatrixType] = useState("general");
   const [revision, setRevision] = useState("1.0");
   const [uploadProgress, setUploadProgress] = useState({});
+  const [previewDoc, setPreviewDoc] = useState(null);
   const fileInputRef = useRef(null);
+  // Cache of { [doc_id]: text } for files uploaded this session
+  const docContentsRef = useRef({});
 
   const fetchDocs = useCallback(async () => {
     try {
@@ -44,7 +172,6 @@ const DocumentUpload = ({ onDocsChange }) => {
             const reader = new FileReader();
             reader.onload = (e) => resolve(e.target.result);
             reader.onerror = reject;
-            // For PDFs/DOCX, read as base64; plain text as text
             if (file.name.match(/\.(pdf|docx)$/i)) {
               reader.readAsDataURL(file);
             } else {
@@ -52,7 +179,6 @@ const DocumentUpload = ({ onDocsChange }) => {
             }
           });
 
-          // Strip data URL prefix for base64
           const rawContent = content.startsWith("data:")
             ? content.split(",")[1]
             : content;
@@ -77,6 +203,11 @@ const DocumentUpload = ({ onDocsChange }) => {
           }
 
           const result = await resp.json();
+          // Cache content for preview (only plain text is human-readable)
+          if (!file.name.match(/\.(pdf|docx)$/i)) {
+            docContentsRef.current[result.doc_id] = rawContent;
+          }
+
           setUploadProgress((p) => ({
             ...p,
             [file.name]: `done (${result.chunks_created} chunks)`,
@@ -107,25 +238,25 @@ const DocumentUpload = ({ onDocsChange }) => {
 
   const handleDragOver = (e) => e.preventDefault();
 
-  const handleDelete = async (docId) => {
+  const handleDelete = async (e, docId) => {
+    e.stopPropagation();
     try {
       await fetch(`${BACKEND}/compliance/documents/${docId}`, { method: "DELETE" });
+      delete docContentsRef.current[docId];
       await fetchDocs();
     } catch (e) {
       setError(e.message);
     }
   };
 
-  const docTypeColor = (dt) => {
-    const map = {
-      SOP: "text-teal-400",
-      SDS: "text-amber-400",
-      REGULATION: "text-purple-400",
-      METHOD: "text-blue-400",
-      COA: "text-green-400",
-    };
-    return map[dt] || "text-gray-400";
-  };
+  const docTypeColor = (dt) => ({
+    SOP: "text-teal-400",
+    SDS: "text-amber-400",
+    REGULATION: "text-purple-400",
+    METHOD: "text-blue-400",
+    COA: "text-green-400",
+    OTHER: "text-gray-400",
+  }[dt] || "text-gray-400");
 
   return (
     <div
@@ -160,15 +291,7 @@ const DocumentUpload = ({ onDocsChange }) => {
             <label className="text-[10px] uppercase tracking-widest text-gray-600">
               Matrix
             </label>
-            <select
-              value={matrixType}
-              onChange={(e) => setMatrixType(e.target.value)}
-              className="bg-[#0e0e0e] border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:outline-none focus:border-teal-700"
-            >
-              {MATRIX_TYPES.map((m) => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
+            <MatrixDropdown value={matrixType} onChange={setMatrixType} />
           </div>
 
           <div className="flex flex-col gap-1">
@@ -178,7 +301,7 @@ const DocumentUpload = ({ onDocsChange }) => {
             <input
               value={revision}
               onChange={(e) => setRevision(e.target.value)}
-              className="bg-[#0e0e0e] border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 w-16 focus:outline-none focus:border-teal-700 font-mono"
+              className="bg-[#0e0e0e] border border-gray-700 rounded px-2 py-1 text-[10px] font-mono text-gray-300 w-16 focus:outline-none focus:border-teal-700"
             />
           </div>
         </div>
@@ -188,15 +311,17 @@ const DocumentUpload = ({ onDocsChange }) => {
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onClick={() => fileInputRef.current?.click()}
-          className="w-full border-2 border-dashed border-gray-700 rounded flex flex-col items-center gap-3 py-10 px-6 cursor-pointer hover:border-teal-700/70 transition-colors mb-6"
+          className="w-full border-2 border-dashed border-gray-700 rounded flex items-center gap-4 py-4 px-6 cursor-pointer hover:border-teal-700/70 transition-colors mb-6"
         >
-          <LuCloudUpload className="w-8 h-8 text-gray-600" />
-          <div className="text-sm text-gray-400">
-            Drag & drop files here, or{" "}
-            <span className="text-teal-500 underline underline-offset-2">browse</span>
-          </div>
-          <div className="text-[10px] text-gray-600 uppercase tracking-widest">
-            Accepted: .pdf, .docx, .txt
+          <LuCloudUpload className="w-6 h-6 text-gray-600 flex-shrink-0" />
+          <div>
+            <div className="text-xs text-gray-400">
+              Drag & drop files here, or{" "}
+              <span className="text-teal-500 underline underline-offset-2">browse</span>
+            </div>
+            <div className="text-[10px] text-gray-600 mt-0.5 uppercase tracking-widest">
+              .pdf · .docx · .txt
+            </div>
           </div>
           <input
             ref={fileInputRef}
@@ -219,7 +344,15 @@ const DocumentUpload = ({ onDocsChange }) => {
             {Object.entries(uploadProgress).map(([name, status]) => (
               <div key={name} className="flex items-center justify-between text-xs text-gray-500 font-mono">
                 <span className="truncate max-w-xs">{name}</span>
-                <span className={status === "error" ? "text-red-500" : status.startsWith("done") ? "text-teal-500" : "text-amber-500 animate-pulse"}>
+                <span
+                  className={
+                    status === "error"
+                      ? "text-red-500"
+                      : status.startsWith("done")
+                      ? "text-teal-500"
+                      : "text-amber-500 animate-pulse"
+                  }
+                >
                   {status}
                 </span>
               </div>
@@ -238,7 +371,8 @@ const DocumentUpload = ({ onDocsChange }) => {
             {docs.map((doc) => (
               <div
                 key={doc.doc_id}
-                className="bg-[#0e0e0e] border border-gray-800 rounded px-4 py-3 flex items-center justify-between"
+                onClick={() => setPreviewDoc(doc)}
+                className="group bg-[#0e0e0e] border border-gray-800 rounded px-4 py-3 flex items-center justify-between cursor-pointer hover:border-gray-700 transition-colors"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <LuFileText className="w-4 h-4 text-gray-600 flex-shrink-0" />
@@ -255,13 +389,16 @@ const DocumentUpload = ({ onDocsChange }) => {
                     </div>
                   </div>
                 </div>
-                <button
-                  onClick={() => handleDelete(doc.doc_id)}
-                  className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center hover:bg-red-900/40 transition-colors flex-shrink-0 ml-2"
-                  title="Delete document"
-                >
-                  <LuTrash2 className="w-3 h-3 text-gray-500" />
-                </button>
+                <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                  <LuEye className="w-3.5 h-3.5 text-gray-700 group-hover:text-gray-500 transition-colors" />
+                  <button
+                    onClick={(e) => handleDelete(e, doc.doc_id)}
+                    className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center hover:bg-red-900/40 transition-colors"
+                    title="Delete document"
+                  >
+                    <LuTrash2 className="w-3 h-3 text-gray-500" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -273,6 +410,15 @@ const DocumentUpload = ({ onDocsChange }) => {
           </div>
         )}
       </div>
+
+      {/* Preview dialog */}
+      {previewDoc && (
+        <PreviewDialog
+          doc={previewDoc}
+          content={docContentsRef.current[previewDoc.doc_id] || null}
+          onClose={() => setPreviewDoc(null)}
+        />
+      )}
     </div>
   );
 };
