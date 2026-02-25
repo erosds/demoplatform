@@ -38,7 +38,7 @@ export default function TitleDisplay({
           </div>
         )}
 
-        {next && absP > 0 && (
+        {next && absP > 0.01 && (
           <div
             className="absolute left-0 top-0 w-full"
             style={{ opacity: nextOpacity }}

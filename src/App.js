@@ -26,12 +26,18 @@ export default function App() {
     const x = container.scrollLeft;
     const exactIndex = x / w;
 
+    // Snap to nearest integer when very close — prevents zoom-induced rounding
+    // errors (Ctrl+/-) from producing a fractional scrollIndex that causes the
+    // title cross-fade to activate when the view is settled on a section.
+    const snapped = Math.round(exactIndex);
+    const scrollIdx = Math.abs(exactIndex - snapped) < 0.02 ? snapped : exactIndex;
+
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(() => {
-      setScrollIndex(exactIndex);
+      setScrollIndex(scrollIdx);
       setActiveIndex(
         Math.round(
-          Math.max(0, Math.min(currentSections.length - 1, exactIndex)),
+          Math.max(0, Math.min(currentSections.length - 1, scrollIdx)),
         ),
       );
     });

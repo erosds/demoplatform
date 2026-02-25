@@ -462,7 +462,8 @@ const ComparativeResults = ({ selectedFile, activeLib }) => {
                           {/* Classical · Global (MassBank) */}
                           {isLoading ? <LoadingCell /> : r ? (
                             <MethodCell name={mb?.name} score={mb?.score ?? 0}
-                              color={mb ? CAT_COLOR[catOf(mb, "mb")] : P1} />
+                              color={mb ? CAT_COLOR[catOf(mb, "mb")] : P1}
+                              extra={mb?.n_matches ? `${mb.n_matches}f` : undefined} />
                           ) : <span className="text-gray-800 text-[10px]">–</span>}
 
                           {/* Classical · Local (ECRFS ModifiedCosine) */}

@@ -128,10 +128,10 @@ const SummaryImpact = () => (
             href="https://github.com/MassBank/MassBank-data"
           />
           <DataRow
-            name="GNPS AllPositive dataset"
-            size="500,000+ spectra"
+            name="GNPS Spectral datasets"
+            size="2,000,000+ spectra"
             detail="Source dataset used to pre-train the Spec2Vec model · Global Natural Products Social Molecular Networking"
-            href="https://gnps.ucsd.edu"
+            href="https://external.gnps2.org/gnpslibrary"
           />
           <DataRow
             name="Spec2Vec model weights"
