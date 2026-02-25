@@ -1,0 +1,182 @@
+import asyncio
+import json
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import StreamingResponse
+
+from app.chemical_compliance.compliance_models import (
+    IngestRequest,
+    IngestResponse,
+    QueryRequest,
+    QueryResponse,
+    BatchCompareRequest,
+    BatchCompareResponse,
+    SdsExtractRequest,
+    SdsExtractResponse,
+    HealthResponse,
+)
+
+router = APIRouter(tags=["chemical-compliance"])
+
+
+# ── Health ─────────────────────────────────────────────────────────────────────
+
+@router.get("/health", response_model=HealthResponse)
+async def compliance_health():
+    """Ping Qdrant and Ollama to verify services are reachable."""
+    import requests as _r
+
+    qdrant_status = "ok"
+    ollama_status = "ok"
+
+    try:
+        resp = _r.get("http://localhost:6333/collections", timeout=3)
+        if not resp.ok:
+            qdrant_status = f"error {resp.status_code}"
+    except Exception as e:
+        qdrant_status = f"unreachable: {e}"
+
+    try:
+        resp = _r.get("http://localhost:11434/api/tags", timeout=3)
+        if not resp.ok:
+            ollama_status = f"error {resp.status_code}"
+    except Exception as e:
+        ollama_status = f"unreachable: {e}"
+
+    return HealthResponse(qdrant=qdrant_status, ollama=ollama_status)
+
+
+# ── Document ingestion ─────────────────────────────────────────────────────────
+
+@router.post("/upload", response_model=IngestResponse)
+async def upload_document(req: IngestRequest):
+    """Parse, chunk, embed and store a document in Qdrant."""
+    try:
+        loop = asyncio.get_running_loop()
+        from app.chemical_compliance import document_ingestion_service as dis
+        result = await loop.run_in_executor(
+            None,
+            lambda: dis.ingest_document(
+                req.name, req.content, req.document_type, req.matrix_type, req.revision
+            ),
+        )
+        return IngestResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/documents")
+async def list_documents():
+    """List all ingested documents (one entry per doc_id)."""
+    try:
+        loop = asyncio.get_running_loop()
+        from app.chemical_compliance import document_ingestion_service as dis
+        docs = await loop.run_in_executor(None, dis.list_documents)
+        return {"documents": docs}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/documents/{doc_id}")
+async def delete_document(doc_id: str):
+    """Remove all chunks for a document by doc_id."""
+    try:
+        loop = asyncio.get_running_loop()
+        from app.chemical_compliance import document_ingestion_service as dis
+        result = await loop.run_in_executor(None, lambda: dis.delete_document(doc_id))
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── RAG query ─────────────────────────────────────────────────────────────────
+
+@router.post("/query", response_model=QueryResponse)
+async def compliance_query(req: QueryRequest):
+    """Run the full RAG pipeline (non-streaming fallback)."""
+    try:
+        loop = asyncio.get_running_loop()
+        from app.chemical_compliance import rag_query_service as rqs
+        messages = [m.model_dump() for m in req.messages]
+        result = await loop.run_in_executor(
+            None,
+            lambda: rqs.query_pipeline(
+                req.query, req.mode, req.document_types, req.top_k, messages
+            ),
+        )
+        return QueryResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/query/stream")
+async def compliance_query_stream(req: QueryRequest):
+    """Streaming RAG pipeline via Server-Sent Events."""
+    from app.chemical_compliance import rag_query_service as rqs
+    messages = [m.model_dump() for m in req.messages]
+
+    async def event_generator():
+        try:
+            async for event in rqs.stream_query_pipeline(
+                req.query, req.mode, req.document_types, req.top_k, messages
+            ):
+                yield f"data: {json.dumps(event)}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+# ── SDS extraction ─────────────────────────────────────────────────────────────
+
+@router.post("/sds-extract", response_model=SdsExtractResponse)
+async def sds_extract(req: SdsExtractRequest):
+    """Extract structured hazard data from SDS text without LLM."""
+    try:
+        from app.chemical_compliance import sds_extract_mode as sem
+        from app.chemical_compliance import audit_service as aus
+        result = sem.extract_sds_data(req.content)
+        aus.log_event("sds_extract", {"substance": result.get("substance_name", "unknown")})
+        return SdsExtractResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── Batch CoA comparison ───────────────────────────────────────────────────────
+
+@router.post("/batch-compare", response_model=BatchCompareResponse)
+async def batch_compare(req: BatchCompareRequest):
+    """Compare two CoA documents and return per-parameter deviation analysis."""
+    try:
+        loop = asyncio.get_running_loop()
+        from app.chemical_compliance import batch_compare_mode as bcm
+        from app.chemical_compliance import audit_service as aus
+        result = await loop.run_in_executor(
+            None,
+            lambda: bcm.compare_coas(req.file1.content, req.file2.content, req.threshold),
+        )
+        aus.log_event("batch_compare", {
+            "file1": req.file1.name,
+            "file2": req.file2.name,
+            "threshold": req.threshold,
+            "flagged": sum(1 for p in result["parameters"] if p["flagged"]),
+        })
+        return BatchCompareResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── Audit trail ───────────────────────────────────────────────────────────────
+
+@router.get("/audit-log")
+async def get_audit_log():
+    """Return the audit log (newest first)."""
+    try:
+        from app.chemical_compliance import audit_service as aus
+        return {"events": aus.get_log()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

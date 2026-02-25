@@ -19,10 +19,10 @@ const HomePage = ({ onSelectWorkflow }) => {
       gradient: 'from-amber-600 via-orange-600 to-red-600'
     },
     {
-      id: 'dataFusion',
-      label: 'DataFusion',
-      tagline: 'merge & clean heterogeneous datasets',
-      gradient: 'from-green-600 via-emerald-600 to-teal-600'
+      id: 'chemicalCompliance',
+      label: 'ChemAssistant',
+      tagline: 'local RAG for chemical QA/QC compliance',
+      gradient: 'from-green-600 via-emerald-500 to-teal-600'
     },
   ];
 

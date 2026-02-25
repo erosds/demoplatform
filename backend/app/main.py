@@ -459,79 +459,11 @@ async def deep_spectrum_massbank_search(request: Request):
 
 
 # ──────────────────────────────────────────────────────────────
-#  DataFusion endpoints
+#  Chemical Compliance RAG endpoints
 # ──────────────────────────────────────────────────────────────
 
-from app.datafusion_service import (
-    parse_files as df_parse_files,
-    get_file_info as df_get_file_info,
-    apply_mapping as df_apply_mapping,
-    detect_conflicts as df_detect_conflicts,
-    merge_datasets as df_merge_datasets,
-)
-
-
-@app.post("/datafusion/info")
-async def datafusion_info(request: Request):
-    """
-    Receive {files: [{name, content}]}, return metadata per file.
-    """
-    try:
-        body = await request.json()
-        files = body.get("files", [])
-        loop = asyncio.get_running_loop()
-        dfs = await loop.run_in_executor(None, lambda: df_parse_files(files))
-        infos = [df_get_file_info(name, df) for name, df in dfs.items()]
-        return {"files": infos}
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/datafusion/merge")
-async def datafusion_merge(request: Request):
-    """
-    Receive files + column_mapping + rules; return merged data + stats.
-    If dry_run=true, returns conflict analysis without full merge.
-    """
-    try:
-        body = await request.json()
-        files = body.get("files", [])
-        column_mapping = body.get("column_mapping", {})
-        key_column = body.get("key_column", "")
-        label_col = body.get("label_col", "")
-        rules = body.get("rules", {})
-        dry_run = bool(body.get("dry_run", False))
-
-        loop = asyncio.get_running_loop()
-        dfs = await loop.run_in_executor(None, lambda: df_parse_files(files))
-
-        if column_mapping:
-            dfs = await loop.run_in_executor(
-                None, lambda: df_apply_mapping(dfs, column_mapping, key_column)
-            )
-
-        if dry_run:
-            conflicts = await loop.run_in_executor(
-                None, lambda: df_detect_conflicts(dfs, key_column, label_col)
-            )
-            result = await loop.run_in_executor(
-                None,
-                lambda: df_merge_datasets(dfs, key_column, label_col, rules, dry_run=True),
-            )
-            return {"conflicts": conflicts, "stats": result["stats"]}
-
-        result = await loop.run_in_executor(
-            None,
-            lambda: df_merge_datasets(dfs, key_column, label_col, rules, dry_run=False),
-        )
-        return result
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+from app.compliance_router import router as compliance_router
+app.include_router(compliance_router, prefix="/compliance")
 
 
 if __name__ == "__main__":
