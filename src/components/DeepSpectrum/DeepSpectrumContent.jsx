@@ -35,9 +35,9 @@ const DeepSpectrumContent = ({ activeIndex, scrollIndex, totalSections }) => {
   } else if (activeIndex === 3) {
     content = <SpectralMatching selectedFile={selectedFile} activeLib={activeLib} />;
   } else if (activeIndex === 4) {
-    content = <VectorizationEngine selectedFile={selectedFile} />;
+    content = <VectorizationEngine selectedFile={selectedFile} activeLib={activeLib} />;
   } else if (activeIndex === 5) {
-    content = <Spec2VecAnalysis selectedFile={selectedFile} />;
+    content = <Spec2VecAnalysis selectedFile={selectedFile} activeLib={activeLib} />;
   } else if (activeIndex === 6) {
     content = <ComparativeResults selectedFile={selectedFile} activeLib={activeLib} />;
   } else if (activeIndex === 7) {

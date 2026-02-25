@@ -295,7 +295,7 @@ const KnowledgeBaseExplorer = ({ activeLib, onLibChange }) => {
     setLoading(true);
     setLibrary([]);
     setError(null);
-    fetch(`${BACKEND}/deep-spectrum/library`)
+    fetch(`${BACKEND}/deep-spectrum/library?lib=${activeLib}`)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
@@ -315,7 +315,7 @@ const KnowledgeBaseExplorer = ({ activeLib, onLibChange }) => {
     if (selectedId === null) return;
     setSpecLoading(true);
     setSpectrum(null);
-    fetch(`${BACKEND}/deep-spectrum/spectrum/${selectedId}`)
+    fetch(`${BACKEND}/deep-spectrum/spectrum/${selectedId}?lib=${activeLib}`)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
@@ -337,7 +337,7 @@ const KnowledgeBaseExplorer = ({ activeLib, onLibChange }) => {
   if (!activeLib) {
     return (
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-10 px-12"
-        style={{ paddingTop: "200px", paddingBottom: "100px" }}>
+        style={{ paddingTop: "100px", paddingBottom: "100px" }}>
         <div className="flex flex-col items-center gap-3" style={{ width: 280 }}>
           <div className="text-[10px] font-semibold uppercase tracking-widest text-gray-500 mb-1.5">
             Reference spectral library

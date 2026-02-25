@@ -133,16 +133,38 @@ const LoadingCell = () => (
   </span>
 );
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const formatLibName = (stem) =>
+  stem?.replace(/_/g, " ").replace(/\bfinal\b/gi, "").replace(/\s+/g, " ").trim() ?? "ECRFS Library";
+
 // ─── Main component ───────────────────────────────────────────────────────────
 const GRID = "26px 52px 58px 1fr 1fr 1fr 1fr 66px";
 
-const ComparativeResults = ({ selectedFile }) => {
+const ComparativeResults = ({ selectedFile, activeLib }) => {
   const [chrom, setChrom] = useState(null);
   const [selectedPeak, setSelectedPeak] = useState(null);
   const [allResults, setAllResults] = useState({});
   const [computing, setComputing] = useState(false);
   const [activated, setActivated] = useState(false);
   const [broadReady, setBroadReady] = useState(false);
+  const [libInfo, setLibInfo] = useState(null);
+
+  // Reset and fetch lib info when activeLib changes
+  useEffect(() => {
+    setActivated(false);
+    setAllResults({});
+    setLibInfo(null);
+    fetch(`${BACKEND}/deep-spectrum/libraries`)
+      .then((r) => r.json())
+      .then((libs) => {
+        const target = activeLib ?? null;
+        const found = target
+          ? libs.find((l) => l.id === target)
+          : libs.find((l) => l.id === "ECRFS_library_final" || l.is_default) ?? libs[0];
+        if (found) setLibInfo(found);
+      })
+      .catch(() => {});
+  }, [activeLib]);
 
   // Check broad index status once
   useEffect(() => {
@@ -183,12 +205,12 @@ const ComparativeResults = ({ selectedFile }) => {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             peaks: peak.ms2.peaks, precursor_mz: peak.precursor_mz,
-            tolerance: 0.01, top_n: 5
+            tolerance: 0.01, top_n: 5, lib: activeLib ?? null
           }),
         })),
         safe(fetch(`${BACKEND}/deep-spectrum/spec2vec-match`, {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ peaks: peak.ms2.peaks, top_n: 5 }),
+          body: JSON.stringify({ peaks: peak.ms2.peaks, top_n: 5, lib: activeLib ?? null }),
         })),
         safe(fetch(`${BACKEND}/deep-spectrum/spec2vec-broad-match`, {
           method: "POST", headers: { "Content-Type": "application/json" },
@@ -283,12 +305,12 @@ const ComparativeResults = ({ selectedFile }) => {
                   <div className="grid grid-cols-2 gap-1.5">
                     {[
                       { label: "Classical · Global", sub: "MassBank · CosineGreedy", color: P1 },
-                      { label: "Classical · Local", sub: "ECRFS · ModifiedCosine", color: P1 },
+                      { label: "Classical · Local", sub: `${formatLibName(activeLib ?? "ECRFS Library")} · ModifiedCosine`, color: P1 },
                       {
                         label: "AI · Global", sub: "MassBank · Spec2Vec", color: P2,
                         note: broadReady ? null : "index not built"
                       },
-                      { label: "AI · Local", sub: "ECRFS · Spec2Vec", color: P2 },
+                      { label: "AI · Local", sub: `${formatLibName(activeLib ?? "ECRFS Library")} · Spec2Vec`, color: P2 },
                     ].map(({ label, sub, color, note }) => (
                       <div key={label} className="rounded p-2" style={{ background: color + "10", border: `1px solid ${color}22` }}>
                         <div className="text-[9px] font-semibold leading-tight" style={{ color }}>{label}</div>
@@ -369,9 +391,9 @@ const ComparativeResults = ({ selectedFile }) => {
                     <span>RT</span>
                     <span>m/z</span>
                     <span style={{ color: P1 + "aa" }}>Global · MB</span>
-                    <span style={{ color: P1 + "aa" }}>Local · ECRFS</span>
+                    <span style={{ color: P1 + "aa" }}>Local · {formatLibName(activeLib ?? "ECRFS")}</span>
                     <span style={{ color: P2 + "aa" }}>Global · MB</span>
-                    <span style={{ color: P2 + "aa" }}>Local · ECRFS</span>
+                    <span style={{ color: P2 + "aa" }}>Local · {formatLibName(activeLib ?? "ECRFS")}</span>
                     <span className="text-right">Verdict</span>
                   </div>
                 </div>

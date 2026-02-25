@@ -5,7 +5,7 @@ import asyncio
 import json
 import math
 import time
-from typing import List
+from typing import List, Optional
 import traceback
 
 from app.ml_service import MLService
@@ -230,19 +230,21 @@ def deep_spectrum_libraries():
 
 
 @app.get("/deep-spectrum/library")
-def deep_spectrum_library():
-    """Restituisce la libreria EFSA/Wageningen: 102 molecole PMT con metadata unificati."""
+def deep_spectrum_library(lib: Optional[str] = None):
+    """Restituisce la libreria spettrale specificata (default: ECRFS)."""
     try:
-        return ns_get_library()
+        return ns_get_library(lib)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/deep-spectrum/embedding/{spectrum_id}")
-def deep_spectrum_embedding(spectrum_id: int):
-    """Restituisce il vettore 300-D (pseudo Spec2Vec) per una molecola."""
+def deep_spectrum_embedding(spectrum_id: int, lib: Optional[str] = None):
+    """Restituisce il vettore 300-D Spec2Vec per una molecola della libreria specificata."""
     try:
-        return ns_get_embedding(spectrum_id)
+        return ns_get_embedding(spectrum_id, lib)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
@@ -250,19 +252,21 @@ def deep_spectrum_embedding(spectrum_id: int):
 
 
 @app.get("/deep-spectrum/embeddings-3d")
-def deep_spectrum_embeddings_3d():
-    """Restituisce le coordinate PCA 3-D per tutte le 102 molecole."""
+def deep_spectrum_embeddings_3d(lib: Optional[str] = None):
+    """Restituisce le coordinate PCA 3-D per tutte le molecole della libreria specificata."""
     try:
-        return ns_get_embeddings_3d()
+        return ns_get_embeddings_3d(lib)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/deep-spectrum/spectrum/{spectrum_id}")
-def deep_spectrum_spectrum(spectrum_id: int):
+def deep_spectrum_spectrum(spectrum_id: int, lib: Optional[str] = None):
     """Restituisce il set di picchi MS2 completo per una molecola (per indice)."""
     try:
-        return ns_get_spectrum(spectrum_id)
+        return ns_get_spectrum(spectrum_id, lib)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
@@ -280,9 +284,10 @@ async def deep_spectrum_project_query_3d(request: Request):
         body        = await request.json()
         query_peaks = body.get("peaks", [])
         label       = str(body.get("label", "Query"))
+        lib_id      = body.get("lib") or None
         loop        = asyncio.get_running_loop()
         result      = await loop.run_in_executor(
-            None, lambda: ns_project_query_to_3d(query_peaks, label)
+            None, lambda: ns_project_query_to_3d(query_peaks, label, lib_id)
         )
         return result
     except Exception as e:
@@ -322,7 +327,7 @@ def deep_spectrum_get_chromatogram(filename: str):
 async def deep_spectrum_spectral_match(request: Request):
     """
     Real spectral matching via matchms ModifiedCosine.
-    Body: { peaks: [{mz, intensity}], precursor_mz, tolerance?, top_n? }
+    Body: { peaks: [{mz, intensity}], precursor_mz, tolerance?, top_n?, lib? }
     """
     try:
         body        = await request.json()
@@ -330,11 +335,12 @@ async def deep_spectrum_spectral_match(request: Request):
         precursor   = float(body.get("precursor_mz", 0.0))
         tolerance   = float(body.get("tolerance", 0.01))
         top_n       = int(body.get("top_n", 10))
+        lib_id      = body.get("lib") or None
 
         loop = asyncio.get_running_loop()
         results = await loop.run_in_executor(
             None,
-            lambda: ns_spectral_match(query_peaks, precursor, tolerance, top_n)
+            lambda: ns_spectral_match(query_peaks, precursor, tolerance, top_n, lib_id)
         )
         return {"results": results}
     except Exception as e:
@@ -363,17 +369,18 @@ async def deep_spectrum_anomaly_score(request: Request):
 async def deep_spectrum_spec2vec_match(request: Request):
     """
     Spec2Vec embedding similarity: cosine k-NN in 300-D embedding space.
-    Body: { peaks: [{mz, intensity}], top_n? }
+    Body: { peaks: [{mz, intensity}], top_n?, lib? }
     """
     try:
         body        = await request.json()
         query_peaks = body.get("peaks", [])
         top_n       = int(body.get("top_n", 10))
+        lib_id      = body.get("lib") or None
 
         loop = asyncio.get_running_loop()
         results = await loop.run_in_executor(
             None,
-            lambda: ns_spec2vec_match(query_peaks, top_n)
+            lambda: ns_spec2vec_match(query_peaks, top_n, lib_id)
         )
         return {"results": results}
     except Exception as e:

@@ -9,7 +9,7 @@ import csv
 import logging
 import threading
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import Any, List, Dict, Optional
 
 # matchms emits a lot of WARNING-level noise (missing precursor_mz, etc.)
 # that is expected for bulk public databases — suppress below ERROR.
@@ -24,16 +24,20 @@ _spectra_cache: Optional[List[Dict]] = None
 _csv_cache:     Optional[Dict[str, Dict]] = None
 _library_cache: Optional[List[Dict]] = None
 
+# Per-library caches for non-default libraries (keyed by mgf stem)
+_extra_spectra_cache: Dict[str, List[Dict]] = {}
+_extra_library_cache: Dict[str, List[Dict]] = {}
+
 
 # ──────────────────────────────────────────────────────────────
 #  Parsers
 # ──────────────────────────────────────────────────────────────
 
-def _parse_mgf() -> List[Dict]:
-    """Read ECRFS_library_final.mgf and return a list of spectrum dicts."""
+def _parse_mgf(path: Optional[Path] = None) -> List[Dict]:
+    """Parse an MGF file and return a list of spectrum dicts."""
     spectra: List[Dict] = []
 
-    with open(MGF_FILE, "r", encoding="utf-8", errors="replace") as fh:
+    with open(path or MGF_FILE, "r", encoding="utf-8", errors="replace") as fh:
         content = fh.read()
 
     blocks = re.split(r"BEGIN IONS", content)
@@ -71,10 +75,14 @@ def _parse_mgf() -> List[Dict]:
     return spectra
 
 
-def _parse_csv() -> Dict[str, Dict]:
-    """Read ECRFS_metadata_final.csv (semicolon-separated) keyed by lowercase name."""
+def _parse_csv(path: Optional[Path] = None) -> Dict[str, Dict]:
+    """Parse a semicolon-separated metadata CSV keyed by lowercase compound name.
+    Returns an empty dict if the file does not exist (CSV is optional)."""
+    target = path or CSV_FILE
+    if not target.exists():
+        return {}
     metadata: Dict[str, Dict] = {}
-    with open(CSV_FILE, "r", encoding="utf-8-sig", errors="replace") as fh:
+    with open(target, "r", encoding="utf-8-sig", errors="replace") as fh:
         reader = csv.DictReader(fh, delimiter=";")
         for row in reader:
             name = (row.get("Name") or "").strip()
@@ -92,29 +100,15 @@ def _strip_adduct(name: str) -> str:
 #  Public API
 # ──────────────────────────────────────────────────────────────
 
-def get_library() -> List[Dict]:
-    """
-    Return merged library: MGF spectra + CSV metadata.
-    Each item contains key fields for the Knowledge Base Explorer sidebar and info panel.
-    """
-    global _spectra_cache, _csv_cache, _library_cache
-
-    if _library_cache is not None:
-        return _library_cache
-
-    if _spectra_cache is None:
-        _spectra_cache = _parse_mgf()
-    if _csv_cache is None:
-        _csv_cache = _parse_csv()
-
+def _build_library(spectra: List[Dict], csv_data: Dict[str, Dict]) -> List[Dict]:
+    """Merge a list of parsed MGF spectra with CSV metadata into library records."""
     library: List[Dict] = []
-    for i, spectrum in enumerate(_spectra_cache):
+    for i, spectrum in enumerate(spectra):
         meta = spectrum["metadata"]
         mgf_name   = meta.get("NAME", f"Unknown_{i}")
         clean_name = _strip_adduct(mgf_name)
-        csv_row    = _csv_cache.get(clean_name.lower(), {})
+        csv_row    = csv_data.get(clean_name.lower(), {})
 
-        # CAS: prefer CSV, fall back to MGF NOTES field (3rd colon-separated token)
         cas = csv_row.get("CAS_RN", "N/A")
         if not cas or cas == "N/A":
             notes = meta.get("NOTES", "")
@@ -126,14 +120,9 @@ def get_library() -> List[Dict]:
 
         tox_score    = csv_row.get("EFSA Tox Score", "N/A")
         tox_rel      = csv_row.get("Reliability of Tox Score", "N/A")
-        tox_endpoint = csv_row.get("Endpoint for basis of scoring ", "N/A")  # trailing space in header
+        tox_endpoint = csv_row.get("Endpoint for basis of scoring ", "N/A")
         if not tox_endpoint or tox_endpoint == "N/A":
             tox_endpoint = csv_row.get("Endpoint for basis of scoring", "N/A")
-
-        rt_raw = csv_row.get("Retention_time", "N/A")
-
-        # Retention time: MGF RTINSECONDS is reliable (in seconds)
-        rt = meta.get("RTINSECONDS", "N/A")
 
         library.append({
             "id":              i,
@@ -148,16 +137,49 @@ def get_library() -> List[Dict]:
             "tox_score":       tox_score,
             "tox_reliability": tox_rel,
             "tox_endpoint":    tox_endpoint,
-            "retention_time":  rt,
+            "retention_time":  meta.get("RTINSECONDS", "N/A"),
             "ionmode":         meta.get("IONMODE", "N/A"),
             "instrument":      meta.get("SOURCE_INSTRUMENT", meta.get("INSTRUMENT", "N/A")),
             "activation":      meta.get("ACTIVATION", "N/A"),
             "spectrum_quality": meta.get("LIBRARYQUALITY", "N/A"),
             "peak_count":      len(spectrum["peaks"]),
         })
-
-    _library_cache = library
     return library
+
+
+def get_library(lib_id: Optional[str] = None) -> List[Dict]:
+    """
+    Return merged library: MGF spectra + optional CSV metadata.
+    lib_id is the MGF filename stem (e.g. 'ECRFS_library_final').
+    If omitted, returns the default ECRFS library.
+    """
+    global _spectra_cache, _csv_cache, _library_cache
+    global _extra_spectra_cache, _extra_library_cache
+
+    # ── Non-default library ──────────────────────────────────────
+    if lib_id and lib_id != MGF_FILE.stem:
+        if lib_id in _extra_library_cache:
+            return _extra_library_cache[lib_id]
+        mgf_path = DATASETS_DIR / f"{lib_id}.mgf"
+        if not mgf_path.exists():
+            raise ValueError(f"Library '{lib_id}' not found")
+        # CSV: same stem first, then fall back to no metadata
+        csv_path = DATASETS_DIR / f"{lib_id}.csv"
+        if lib_id not in _extra_spectra_cache:
+            _extra_spectra_cache[lib_id] = _parse_mgf(mgf_path)
+        result = _build_library(_extra_spectra_cache[lib_id], _parse_csv(csv_path))
+        _extra_library_cache[lib_id] = result
+        return result
+
+    # ── Default library (ECRFS) ──────────────────────────────────
+    if _library_cache is not None:
+        return _library_cache
+    if _spectra_cache is None:
+        _spectra_cache = _parse_mgf()
+    if _csv_cache is None:
+        _csv_cache = _parse_csv()
+    _library_cache = _build_library(_spectra_cache, _csv_cache)
+    return _library_cache
 
 
 # ──────────────────────────────────────────────────────────────
@@ -219,35 +241,33 @@ def _spectrum_to_embedding(spectrum: Dict, intensity_power: float = 0.5) -> "np.
     return vec
 
 
-def get_embedding(spectrum_id: int) -> Dict:
-    """Return the 300-D pseudo-embedding for one spectrum."""
-    import numpy as np
-    global _spectra_cache
-
-    if _spectra_cache is None:
-        _spectra_cache = _parse_mgf()
-    if spectrum_id < 0 or spectrum_id >= len(_spectra_cache):
-        raise ValueError(f"Spectrum ID {spectrum_id} out of range")
-
-    vec = _spectrum_to_embedding(_spectra_cache[spectrum_id])
-    return {"embedding": vec.tolist(), "dimensions": int(vec.shape[0])}
-
 
 _pca_model_cache = None
+_extra_pca_cache: Dict[str, Any] = {}
+_extra_embeddings_3d_cache: Dict[str, List[Dict]] = {}
 
 
-def _get_pca():
-    """Fit (once) and cache PCA on the 102 ECRFS embeddings."""
+def _get_pca(lib_id: Optional[str] = None):
+    """Fit (once per library) and cache PCA on the library embeddings."""
     import numpy as np
     from sklearn.decomposition import PCA
-    global _pca_model_cache, _spectra_cache
+    global _pca_model_cache, _spectra_cache, _extra_pca_cache, _extra_spectra_cache
+
+    if lib_id and lib_id != MGF_FILE.stem:
+        if lib_id in _extra_pca_cache:
+            return _extra_pca_cache[lib_id]
+        if lib_id not in _extra_spectra_cache:
+            _extra_spectra_cache[lib_id] = _parse_mgf(DATASETS_DIR / f"{lib_id}.mgf")
+        matrix = np.array([_spectrum_to_embedding(sp) for sp in _extra_spectra_cache[lib_id]])
+        pca = PCA(n_components=3, random_state=42)
+        pca.fit(matrix)
+        _extra_pca_cache[lib_id] = pca
+        return pca
 
     if _pca_model_cache is not None:
         return _pca_model_cache
-
     if _spectra_cache is None:
         _spectra_cache = _parse_mgf()
-
     matrix = np.array([_spectrum_to_embedding(sp) for sp in _spectra_cache])
     pca = PCA(n_components=3, random_state=42)
     pca.fit(matrix)
@@ -255,58 +275,83 @@ def _get_pca():
     return pca
 
 
-def get_embeddings_3d() -> List[Dict]:
-    """
-    Return PCA-reduced 3-D coordinates for all 102 molecules.
-    Cached after the first call.
-    """
+def get_embedding(spectrum_id: int, lib_id: Optional[str] = None) -> Dict:
+    """Return the 300-D embedding for one spectrum from the given library."""
     import numpy as np
-    global _spectra_cache, _embeddings_3d_cache
+    global _spectra_cache, _extra_spectra_cache
+
+    if lib_id and lib_id != MGF_FILE.stem:
+        if lib_id not in _extra_spectra_cache:
+            mgf_path = DATASETS_DIR / f"{lib_id}.mgf"
+            if not mgf_path.exists():
+                raise ValueError(f"Library '{lib_id}' not found")
+            _extra_spectra_cache[lib_id] = _parse_mgf(mgf_path)
+        spectra = _extra_spectra_cache[lib_id]
+    else:
+        if _spectra_cache is None:
+            _spectra_cache = _parse_mgf()
+        spectra = _spectra_cache
+
+    if spectrum_id < 0 or spectrum_id >= len(spectra):
+        raise ValueError(f"Spectrum ID {spectrum_id} out of range")
+    vec = _spectrum_to_embedding(spectra[spectrum_id])
+    return {"embedding": vec.tolist(), "dimensions": int(vec.shape[0])}
+
+
+def get_embeddings_3d(lib_id: Optional[str] = None) -> List[Dict]:
+    """Return PCA-reduced 3-D coordinates for all molecules in the given library."""
+    import numpy as np
+    global _spectra_cache, _embeddings_3d_cache, _extra_spectra_cache, _extra_embeddings_3d_cache
+
+    if lib_id and lib_id != MGF_FILE.stem:
+        if lib_id in _extra_embeddings_3d_cache:
+            return _extra_embeddings_3d_cache[lib_id]
+        if lib_id not in _extra_spectra_cache:
+            mgf_path = DATASETS_DIR / f"{lib_id}.mgf"
+            if not mgf_path.exists():
+                raise ValueError(f"Library '{lib_id}' not found")
+            _extra_spectra_cache[lib_id] = _parse_mgf(mgf_path)
+        spectra = _extra_spectra_cache[lib_id]
+        library = get_library(lib_id)
+        pca     = _get_pca(lib_id)
+        matrix  = np.array([_spectrum_to_embedding(sp) for sp in spectra])
+        coords  = pca.transform(matrix)
+        result  = [{"id": i, "name": mol["name"], "formula": mol["formula"],
+                    "tox_score": mol["tox_score"],
+                    "x": float(c[0]), "y": float(c[1]), "z": float(c[2])}
+                   for i, (c, mol) in enumerate(zip(coords, library))]
+        _extra_embeddings_3d_cache[lib_id] = result
+        return result
 
     if _embeddings_3d_cache is not None:
         return _embeddings_3d_cache
-
     if _spectra_cache is None:
         _spectra_cache = _parse_mgf()
-
     pca    = _get_pca()
     matrix = np.array([_spectrum_to_embedding(sp) for sp in _spectra_cache])
     coords = pca.transform(matrix)
-
     library = get_library()
     result: List[Dict] = []
     for i, (c, mol) in enumerate(zip(coords, library)):
-        result.append({
-            "id":        i,
-            "name":      mol["name"],
-            "formula":   mol["formula"],
-            "tox_score": mol["tox_score"],
-            "x":         float(c[0]),
-            "y":         float(c[1]),
-            "z":         float(c[2]),
-        })
-
+        result.append({"id": i, "name": mol["name"], "formula": mol["formula"],
+                       "tox_score": mol["tox_score"],
+                       "x": float(c[0]), "y": float(c[1]), "z": float(c[2])})
     _embeddings_3d_cache = result
     return result
 
 
-def project_query_to_3d(query_peaks: List[Dict], label: str = "Query") -> Dict:
+def project_query_to_3d(query_peaks: List[Dict], label: str = "Query",
+                         lib_id: Optional[str] = None) -> Dict:
     """
-    Project a query MS2 spectrum into the ECRFS PCA 3-D space.
-    Uses the same PCA model fitted on the 102 ECRFS embeddings so that
-    query peaks land in the same coordinate frame as the library.
+    Project a query MS2 spectrum into the PCA 3-D space of the given library.
+    Query peaks land in the same coordinate frame as the library molecules.
     """
     import numpy as np
 
-    vec  = _spectrum_to_embedding({"peaks": query_peaks})
-    pca  = _get_pca()
+    vec    = _spectrum_to_embedding({"peaks": query_peaks})
+    pca    = _get_pca(lib_id)
     coords = pca.transform(vec.reshape(1, -1))[0]
-    return {
-        "label": label,
-        "x":     float(coords[0]),
-        "y":     float(coords[1]),
-        "z":     float(coords[2]),
-    }
+    return {"label": label, "x": float(coords[0]), "y": float(coords[1]), "z": float(coords[2])}
 
 
 def get_all_embeddings() -> List[Dict]:
@@ -331,15 +376,20 @@ def get_all_embeddings() -> List[Dict]:
 
 
 def list_libraries() -> List[Dict]:
-    """List available spectral libraries (MGF + CSV pairs) in the datasets folder."""
+    """List available spectral libraries (MGF files) in the datasets folder."""
     libs = []
     for mgf in sorted(DATASETS_DIR.glob("*.mgf")):
-        # Look for a matching CSV (metadata file)
-        csv_candidates = list(DATASETS_DIR.glob(f"*metadata*.csv"))
+        try:
+            n_spectra = mgf.read_text(encoding="utf-8", errors="replace").count("BEGIN IONS")
+        except Exception:
+            n_spectra = 0
+        csv_path = DATASETS_DIR / f"{mgf.stem}.csv"
+        has_metadata = csv_path.exists() or bool(list(DATASETS_DIR.glob("*metadata*.csv")))
         libs.append({
             "id":           mgf.stem,
             "file":         mgf.name,
-            "has_metadata": len(csv_candidates) > 0,
+            "n_spectra":    n_spectra,
+            "has_metadata": has_metadata,
         })
     return libs
 
@@ -364,10 +414,11 @@ def get_chromatogram(filename: str) -> Dict:
 # ──────────────────────────────────────────────────────────────
 
 def spectral_match(query_peaks: List[Dict], precursor_mz: float,
-                   tolerance: float = 0.01, top_n: int = 10) -> List[Dict]:
+                   tolerance: float = 0.01, top_n: int = 10,
+                   lib_id: Optional[str] = None) -> List[Dict]:
     """
-    Real spectral matching using matchms ModifiedCosine similarity against
-    the 102-molecule ECRFS library.
+    Real spectral matching using matchms ModifiedCosine similarity.
+    Searches against lib_id (MGF stem); defaults to the ECRFS library.
     Returns top_n results sorted by similarity (descending).
     """
     import numpy as np
@@ -375,9 +426,21 @@ def spectral_match(query_peaks: List[Dict], precursor_mz: float,
     from matchms.filtering import normalize_intensities
     from matchms.similarity import ModifiedCosine
 
-    global _spectra_cache
-    if _spectra_cache is None:
-        _spectra_cache = _parse_mgf()
+    global _spectra_cache, _extra_spectra_cache
+
+    if lib_id and lib_id != MGF_FILE.stem:
+        if lib_id not in _extra_spectra_cache:
+            mgf_path = DATASETS_DIR / f"{lib_id}.mgf"
+            if not mgf_path.exists():
+                raise ValueError(f"Library '{lib_id}' not found")
+            _extra_spectra_cache[lib_id] = _parse_mgf(mgf_path)
+        spectra = _extra_spectra_cache[lib_id]
+        library = get_library(lib_id)
+    else:
+        if _spectra_cache is None:
+            _spectra_cache = _parse_mgf()
+        spectra = _spectra_cache
+        library = get_library()
 
     if not query_peaks:
         return []
@@ -391,10 +454,9 @@ def spectral_match(query_peaks: List[Dict], precursor_mz: float,
     query = normalize_intensities(query)
 
     scorer  = ModifiedCosine(tolerance=tolerance)
-    library = get_library()
     results = []
 
-    for i, (spectrum, mol) in enumerate(zip(_spectra_cache, library)):
+    for i, (spectrum, mol) in enumerate(zip(spectra, library)):
         lib_peaks = spectrum["peaks"]
         if not lib_peaks:
             continue
@@ -545,28 +607,37 @@ def anomaly_score(query_peaks: List[Dict]) -> Dict:
 #  Spec2Vec embedding similarity (AI-powered k-NN)
 # ──────────────────────────────────────────────────────────────
 
-def spec2vec_match(query_peaks: List[Dict], top_n: int = 10) -> List[Dict]:
+def spec2vec_match(query_peaks: List[Dict], top_n: int = 10,
+                   lib_id: Optional[str] = None) -> List[Dict]:
     """
     Spec2Vec-style similarity search: cosine distance in 300-D embedding space.
-    Converts query peaks to a 300-D pseudo-embedding and computes dot-product
-    similarity against all 102 ECRFS library embeddings.
-    Both vectors are L2-normalised, so dot product equals cosine similarity.
+    Searches against lib_id (MGF stem); defaults to the ECRFS library.
     Returns top_n results sorted by similarity (descending).
     """
     import numpy as np
-    global _spectra_cache
+    global _spectra_cache, _extra_spectra_cache
 
-    if _spectra_cache is None:
-        _spectra_cache = _parse_mgf()
+    if lib_id and lib_id != MGF_FILE.stem:
+        if lib_id not in _extra_spectra_cache:
+            mgf_path = DATASETS_DIR / f"{lib_id}.mgf"
+            if not mgf_path.exists():
+                raise ValueError(f"Library '{lib_id}' not found")
+            _extra_spectra_cache[lib_id] = _parse_mgf(mgf_path)
+        spectra = _extra_spectra_cache[lib_id]
+        library = get_library(lib_id)
+    else:
+        if _spectra_cache is None:
+            _spectra_cache = _parse_mgf()
+        spectra = _spectra_cache
+        library = get_library()
 
     if not query_peaks:
         return []
 
     query_vec = _spectrum_to_embedding({"peaks": query_peaks})
-    library   = get_library()
     results   = []
 
-    for i, (sp, mol) in enumerate(zip(_spectra_cache, library)):
+    for i, (sp, mol) in enumerate(zip(spectra, library)):
         lib_vec    = _spectrum_to_embedding(sp)
         similarity = float(np.dot(query_vec, lib_vec))
         results.append({
@@ -1000,17 +1071,26 @@ def massbank_search(
     return results
 
 
-def get_spectrum(spectrum_id: int) -> Dict:
+def get_spectrum(spectrum_id: int, lib_id: Optional[str] = None) -> Dict:
     """Return full peak list and raw metadata for a single spectrum by index."""
-    global _spectra_cache
+    global _spectra_cache, _extra_spectra_cache
 
-    if _spectra_cache is None:
-        _spectra_cache = _parse_mgf()
+    if lib_id and lib_id != MGF_FILE.stem:
+        if lib_id not in _extra_spectra_cache:
+            mgf_path = DATASETS_DIR / f"{lib_id}.mgf"
+            if not mgf_path.exists():
+                raise ValueError(f"Library '{lib_id}' not found")
+            _extra_spectra_cache[lib_id] = _parse_mgf(mgf_path)
+        spectra = _extra_spectra_cache[lib_id]
+    else:
+        if _spectra_cache is None:
+            _spectra_cache = _parse_mgf()
+        spectra = _spectra_cache
 
-    if spectrum_id < 0 or spectrum_id >= len(_spectra_cache):
-        raise ValueError(f"Spectrum ID {spectrum_id} is out of range (0–{len(_spectra_cache)-1})")
+    if spectrum_id < 0 or spectrum_id >= len(spectra):
+        raise ValueError(f"Spectrum ID {spectrum_id} is out of range (0–{len(spectra)-1})")
 
-    spectrum = _spectra_cache[spectrum_id]
+    spectrum = spectra[spectrum_id]
     return {
         "peaks":    spectrum["peaks"],
         "metadata": spectrum["metadata"],

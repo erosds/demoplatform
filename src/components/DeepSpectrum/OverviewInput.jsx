@@ -59,7 +59,7 @@ const OverviewInput = ({ selectedFile, onFileChange }) => {
 
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center gap-10 px-12"
-      style={{ paddingTop: "200px", paddingBottom: "100px" }}>
+      style={{ paddingTop: "180px", paddingBottom: "100px" }}>
 
       {/* Dropdown */}
       <Dropdown

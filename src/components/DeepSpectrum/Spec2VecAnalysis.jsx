@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { LuActivity, LuDatabase, LuSparkles, LuArrowUp, LuArrowDown, LuMinus, LuGlobe, LuZap, LuFolderOpen } from "react-icons/lu";
+import { LuActivity, LuDatabase, LuSparkles, LuGlobe, LuZap, LuFolderOpen } from "react-icons/lu";
 
 const BACKEND = "http://localhost:8000";
 
@@ -76,14 +76,6 @@ const Chromatogram = ({ tic, peaks, selectedPeakId, onSelectPeak }) => {
   );
 };
 
-// ─── Rank change indicator ────────────────────────────────────────────────────
-const RankDelta = ({ delta }) => {
-  if (delta === null) return <LuMinus className="w-3 h-3 text-gray-700" />;
-  if (delta > 0) return <span className="flex items-center gap-0.5 text-green-500"><LuArrowUp className="w-3 h-3" /><span className="text-[9px] font-mono">{delta}</span></span>;
-  if (delta < 0) return <span className="flex items-center gap-0.5 text-red-400"><LuArrowDown className="w-3 h-3" /><span className="text-[9px] font-mono">{Math.abs(delta)}</span></span>;
-  return <LuMinus className="w-3 h-3 text-gray-600" />;
-};
-
 // ─── Similarity bar ───────────────────────────────────────────────────────────
 const SimBar = ({ value, color, suffix }) => (
   <div className="flex items-center gap-1.5">
@@ -97,14 +89,19 @@ const SimBar = ({ value, color, suffix }) => (
   </div>
 );
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const formatLibName = (stem) =>
+  stem?.replace(/_/g, " ").replace(/\bfinal\b/gi, "").replace(/\s+/g, " ").trim() ?? "ECRFS Library";
+
 // ─── Main component ───────────────────────────────────────────────────────────
-const Spec2VecAnalysis = ({ selectedFile }) => {
+const Spec2VecAnalysis = ({ selectedFile, activeLib }) => {
   const [chrom, setChrom] = useState(null);
   const [selectedPeak, setSelectedPeak] = useState(null);
   const [allResults, setAllResults] = useState({});
   const [computing, setComputing] = useState(false);
   const [activated, setActivated] = useState(false);
   const [error, setError] = useState(null);
+  const [libInfo, setLibInfo] = useState(null);
 
   // ── Broad search mode ────────────────────────────────────────
   const [broadMode, setBroadMode] = useState(true);
@@ -113,6 +110,24 @@ const Spec2VecAnalysis = ({ selectedFile }) => {
   const [broadComputing, setBroadComputing] = useState(false);
   const [broadActivated, setBroadActivated] = useState(false);
   const pollRef = useRef(null);
+
+  // Reset local results and fetch lib info when activeLib changes
+  useEffect(() => {
+    setActivated(false);
+    setAllResults({});
+    setError(null);
+    setLibInfo(null);
+    fetch(`${BACKEND}/deep-spectrum/libraries`)
+      .then((r) => r.json())
+      .then((libs) => {
+        const target = activeLib ?? null;
+        const found = target
+          ? libs.find((l) => l.id === target)
+          : libs.find((l) => l.id === "ECRFS_library_final" || l.is_default) ?? libs[0];
+        if (found) setLibInfo(found);
+      })
+      .catch(() => {});
+  }, [activeLib]);
 
   // Poll broad index status while building
   useEffect(() => {
@@ -191,17 +206,17 @@ const Spec2VecAnalysis = ({ selectedFile }) => {
           fetch(`${BACKEND}/deep-spectrum/spectral-match`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ peaks: peak.ms2.peaks, precursor_mz: peak.precursor_mz, tolerance: 0.01, top_n: 7 }),
+            body: JSON.stringify({ peaks: peak.ms2.peaks, precursor_mz: peak.precursor_mz, tolerance: 0.01, top_n: 10, lib: activeLib ?? null }),
           }).then((r) => r.json()),
           fetch(`${BACKEND}/deep-spectrum/spec2vec-match`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ peaks: peak.ms2.peaks, top_n: 7 }),
+            body: JSON.stringify({ peaks: peak.ms2.peaks, top_n: 10, lib: activeLib ?? null }),
           }).then((r) => r.json()),
         ]);
         results[peak.id] = {
-          cosine: (cosineRes.results ?? []).slice(0, 7),
-          sv2: (sv2Res.results ?? []).slice(0, 7),
+          cosine: (cosineRes.results ?? []).slice(0, 10),
+          sv2: (sv2Res.results ?? []).slice(0, 10),
         };
       } catch {
         results[peak.id] = { cosine: [], sv2: [] };
@@ -225,7 +240,7 @@ const Spec2VecAnalysis = ({ selectedFile }) => {
     if (!cosineResults?.length && !sv2Results?.length) return [];
     const cosineRankMap = {};
     cosineResults.forEach((m, i) => { cosineRankMap[m.id] = i + 1; });
-    return sv2Results.slice(0, 7).map((mol, i) => {
+    return sv2Results.slice(0, 10).map((mol, i) => {
       const sv2Rank = i + 1;
       const cosineRank = cosineRankMap[mol.id] ?? null;
       const delta = cosineRank !== null ? cosineRank - sv2Rank : null;
@@ -243,8 +258,6 @@ const Spec2VecAnalysis = ({ selectedFile }) => {
   };
 
   const comparison = isDone && currentCache ? buildComparison(currentCache.cosine, currentCache.sv2) : [];
-  const aiOnlyCount = comparison.filter((r) => r.aiOnly).length;
-  const falsePosCount = comparison.filter((r) => r.falsePosWarning).length;
 
   return (
     <div className="absolute inset-0 flex items-center justify-center px-12"
@@ -357,7 +370,7 @@ const Spec2VecAnalysis = ({ selectedFile }) => {
                         : "text-gray-600 border border-transparent hover:text-gray-400"
                       }`}>
                     <LuFolderOpen className="w-3 h-3" />
-                    Local Dataset · 102 ECRFS Spectra
+                    Local Dataset · {formatLibName(activeLib ?? "ECRFS Library")}
                   </button>
                 </div>
 
@@ -369,10 +382,10 @@ const Spec2VecAnalysis = ({ selectedFile }) => {
                       <div className="flex-1 flex flex-col items-center justify-center gap-4">
                         <div className="text-center max-w-xs">
                           <div className="text-[10px] uppercase tracking-widest text-gray-600 mb-1">
-                            Spec2Vec · ECRFS Library
+                            Spec2Vec · {formatLibName(activeLib ?? "ECRFS Library")}
                           </div>
                           <div className="text-[10px] text-gray-600">
-                            300-D embedding similarity · 102 PMT compounds
+                            300-D embedding similarity{libInfo ? ` · ${libInfo.n_spectra} spectra` : ""}
                           </div>
                         </div>
                         <button onClick={handleActivate} disabled={!selectedPeak}
@@ -388,7 +401,7 @@ const Spec2VecAnalysis = ({ selectedFile }) => {
                       <div className="flex flex-col flex-1 min-h-0">
                         <div className="flex items-center justify-between mb-3 flex-shrink-0">
                           <span className="text-[10px] uppercase tracking-widest text-gray-600">
-                            Spec2Vec vs ModifiedCosine
+                            Spec2Vec · {formatLibName(activeLib ?? "ECRFS Library")}{libInfo ? ` (${libInfo.n_spectra} spectra)` : ""}
                           </span>
                           {computing && (
                             <span className="text-[10px] text-purple-600/60 font-mono">
@@ -411,78 +424,30 @@ const Spec2VecAnalysis = ({ selectedFile }) => {
                         )}
 
                         {isDone && !isSearching && comparison.length > 0 && (
-                          <div className="flex-1 flex flex-col gap-2 min-h-0 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
-
-                            <div className="flex flex-col gap-1 flex-shrink-0">
-                              {falsePosCount > 0 && (
-                                <div className="px-3 py-1.5 rounded bg-orange-900/15 border border-orange-700/25 text-[10px] text-orange-300 flex items-center gap-2">
-                                  <span className="font-bold">!</span>
-                                  <span><strong>{falsePosCount === 1 ? "1 compound" : `${falsePosCount} compounds`}</strong> flagged by ModifiedCosine with high score but &lt;5 fragments — likely false positive</span>
-                                </div>
-                              )}
-                              {aiOnlyCount > 0 && (
-                                <div className="px-3 py-1.5 rounded bg-purple-900/20 border border-purple-700/30 text-[10px] text-purple-300 flex items-center gap-2">
-                                  <LuSparkles className="w-3 h-3 flex-shrink-0" />
-                                  <span><strong>{aiOnlyCount} compound{aiOnlyCount > 1 ? "s" : ""}</strong> found only by Spec2Vec — not in fragment-match top-7</span>
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="flex items-end gap-4 px-3 flex-shrink-0">
+                          <div className="flex-1 flex flex-col gap-1 min-h-0 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
+                            <div className="flex items-center gap-3 px-3 mb-1 flex-shrink-0">
                               <span className="w-4 text-[9px] text-gray-700">#</span>
                               <span className="flex-1 text-[9px] text-gray-700 uppercase tracking-wide">Compound</span>
-                              <div className="w-28 text-right">
-                                <span className="text-[9px] text-amber-600/80">ModifiedCosine</span>
-                                <div className="text-[8px] text-gray-700">sim · frags</div>
-                              </div>
-                              <div className="w-24 text-right">
-                                <span className="text-[9px] text-purple-500">Spec2Vec</span>
-                                <div className="text-[8px] text-gray-700">embed. sim</div>
-                              </div>
-                              <span className="w-6 flex-shrink-0 text-[9px] text-gray-700 text-right">Δ</span>
+                              <span className="w-16 text-[9px] text-gray-700 text-right">Formula</span>
+                              <span className="w-24 text-[9px] text-purple-500/70 text-right">Spec2Vec</span>
                             </div>
-
-                            <div className="flex flex-col gap-1 flex-shrink-0">
-                              {comparison.map((row) => {
-                                const sv2Color = row.sv2Sim >= 0.65 ? "#ef4444" : row.sv2Sim >= 0.4 ? "#eab308" : "#4b5563";
-                                const cosineColor = row.cosineSim !== null
-                                  ? (row.falsePosWarning ? "#f97316" : row.cosineSim >= 0.65 ? "#ef4444" : row.cosineSim >= 0.4 ? "#eab308" : "#4b5563")
-                                  : "#374151";
-                                return (
-                                  <div key={row.mol.id}
-                                    className={`flex items-center gap-4 px-3 py-2 rounded border transition-colors ${row.falsePosWarning
-                                        ? "bg-orange-900/10 border-orange-700/25"
-                                        : row.aiOnly
-                                          ? "bg-purple-900/10 border-purple-700/30"
-                                          : "bg-[#0e0e0e] border-gray-800/60"
-                                      }`}>
-                                    <span className="text-[10px] text-gray-600 w-4 flex-shrink-0">{row.sv2Rank}</span>
-                                    <div className="flex-1 min-w-0 flex items-center gap-1">
-                                      <span className="text-[10px] text-gray-300 truncate">{row.mol.name}</span>
-                                      {row.falsePosWarning && (
-                                        <span className="flex-shrink-0 px-1 py-0.5 rounded text-[8px] bg-orange-700/30 text-orange-300 uppercase tracking-wide">!</span>
-                                      )}
-                                      {row.aiOnly && !row.falsePosWarning && (
-                                        <span className="flex-shrink-0 px-1 py-0.5 rounded text-[8px] bg-purple-700/30 text-purple-300">AI</span>
-                                      )}
-                                    </div>
-                                    <div className="w-28 flex-shrink-0">
-                                      {row.cosineSim !== null
-                                        ? <SimBar value={row.cosineSim} color={cosineColor}
-                                          suffix={row.nMatches !== null ? `·${row.nMatches}f` : null} />
-                                        : <span className="text-[9px] text-gray-800">—</span>
-                                      }
-                                    </div>
-                                    <div className="w-24 flex-shrink-0">
-                                      <SimBar value={row.sv2Sim} color={sv2Color} />
-                                    </div>
-                                    <div className="w-6 flex-shrink-0 flex justify-end">
-                                      <RankDelta delta={row.delta} />
-                                    </div>
+                            {comparison.map((row) => {
+                              const col = row.sv2Sim >= 0.65 ? "#a855f7" : row.sv2Sim >= 0.4 ? "#fbbf24" : "#4b5563";
+                              return (
+                                <div key={row.mol.id}
+                                  className="flex items-center gap-3 px-3 py-2 bg-[#0e0e0e] rounded border border-gray-800/60 flex-shrink-0">
+                                  <span className="text-[10px] text-gray-600 w-4">{row.sv2Rank}</span>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-[10px] text-gray-300 truncate">{row.mol.name}</div>
+                                    <div className="text-[8px] text-gray-700 font-mono mt-0.5">{row.mol.source ?? formatLibName(activeLib ?? "ECRFS Library")}</div>
                                   </div>
-                                );
-                              })}
-                            </div>
+                                  <span className="w-16 text-[9px] font-mono text-gray-500 text-right shrink-0">{row.mol.formula ?? "—"}</span>
+                                  <div className="w-24 flex-shrink-0">
+                                    <SimBar value={row.sv2Sim} color={col} />
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
@@ -570,7 +535,7 @@ const Spec2VecAnalysis = ({ selectedFile }) => {
                           <div className="flex flex-col flex-1 min-h-0">
                             <div className="flex items-center justify-between mb-3 flex-shrink-0">
                               <span className="text-[10px] uppercase tracking-widest text-gray-600">
-                                Spec2Vec · MassBank ({broadStatus.n_spectra?.toLocaleString()} spettri)
+                                Spec2Vec · MassBank ({broadStatus.n_spectra?.toLocaleString()} spectra)
                               </span>
                               {broadComputing && (
                                 <span className="text-[10px] text-purple-600/60 font-mono">
@@ -604,7 +569,7 @@ const Spec2VecAnalysis = ({ selectedFile }) => {
                                     <span className="w-24 text-[9px] text-purple-500/70 text-right">Spec2Vec</span>
                                   </div>
                                   {hits.map((hit, rank) => {
-                                    const col = hit.similarity >= 0.65 ? "#a855f7" : hit.similarity >= 0.4 ? "#fbbf24" : "#4b5563";
+                                    const col = hit.similarity >= 0.65 ? "#a855f7" : hit.similarity >= 0.4 ? "#e0d0ff" : "#4b5563";
                                     return (
                                       <div key={hit.id}
                                         className="flex items-center gap-3 px-3 py-2 bg-[#0e0e0e] rounded border border-gray-800/60 flex-shrink-0">

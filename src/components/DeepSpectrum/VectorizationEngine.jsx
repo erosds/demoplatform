@@ -397,7 +397,7 @@ const Canvas3D = ({ points, queryPoints = [], highlightId = null, showOnly = fal
         ))}
       </div>
       <div className="absolute top-3 right-3 text-[10px] text-gray-600 font-mono">
-        PCA · 3 components · 102 molecules
+        PCA · 3 components · {points.length} molecules
       </div>
       <div className="absolute top-3 left-4 text-[10px] text-gray-700">
         drag to rotate · auto-resumes after 3 s
@@ -409,7 +409,7 @@ const Canvas3D = ({ points, queryPoints = [], highlightId = null, showOnly = fal
 // ──────────────────────────────────────────────────────────────
 //  Main component
 // ──────────────────────────────────────────────────────────────
-const VectorizationEngine = ({ selectedFile }) => {
+const VectorizationEngine = ({ selectedFile, activeLib }) => {
   const [activated, setActivated] = useState(false);
   const [activating, setActivating] = useState(false);
   const [library, setLibrary] = useState([]);
@@ -424,6 +424,13 @@ const VectorizationEngine = ({ selectedFile }) => {
   const [loadingQuery, setLoadingQuery] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+
+  // Reset when selected library changes
+  useEffect(() => {
+    setActivated(false); setActivating(false);
+    setLibrary([]); setSelectedId(null); setSpectrum(null); setEmbedding(null);
+    setPoints3D([]); setQueryPoints3D([]); setShow3D(false);
+  }, [activeLib]);
 
   useEffect(() => {
     const h = (e) => {
@@ -442,8 +449,9 @@ const VectorizationEngine = ({ selectedFile }) => {
   useEffect(() => {
     if (!activated) return;
     const minDelay = new Promise((r) => setTimeout(r, 1800));
+    const libParam = activeLib ? `?lib=${activeLib}` : "";
     Promise.all([
-      fetch(`${BACKEND}/deep-spectrum/library`).then((r) => r.json()),
+      fetch(`${BACKEND}/deep-spectrum/library${libParam}`).then((r) => r.json()),
       minDelay,
     ])
       .then(([data]) => {
@@ -458,16 +466,18 @@ const VectorizationEngine = ({ selectedFile }) => {
     if (selectedId === null) return;
     setSpectrum(null);
     setEmbedding(null);
+    const libParam = activeLib ? `?lib=${activeLib}` : "";
     Promise.all([
-      fetch(`${BACKEND}/deep-spectrum/spectrum/${selectedId}`).then((r) => r.json()),
-      fetch(`${BACKEND}/deep-spectrum/embedding/${selectedId}`).then((r) => r.json()),
+      fetch(`${BACKEND}/deep-spectrum/spectrum/${selectedId}${libParam}`).then((r) => r.json()),
+      fetch(`${BACKEND}/deep-spectrum/embedding/${selectedId}${libParam}`).then((r) => r.json()),
     ]).then(([spec, emb]) => { setSpectrum(spec); setEmbedding(emb.embedding); });
   }, [selectedId]);
 
   useEffect(() => {
     if (!show3D || points3D.length > 0) return;
     setLoading3D(true);
-    fetch(`${BACKEND}/deep-spectrum/embeddings-3d`)
+    const libParam = activeLib ? `?lib=${activeLib}` : "";
+    fetch(`${BACKEND}/deep-spectrum/embeddings-3d${libParam}`)
       .then((r) => r.json())
       .then((data) => { setPoints3D(data); setLoading3D(false); })
       .catch(() => setLoading3D(false));
@@ -489,7 +499,7 @@ const VectorizationEngine = ({ selectedFile }) => {
             const res = await fetch(`${BACKEND}/deep-spectrum/project-query-3d`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ peaks: pk.ms2.peaks, label: `Pk ${pk.id}` }),
+              body: JSON.stringify({ peaks: pk.ms2.peaks, label: `Pk ${pk.id}`, lib: activeLib ?? null }),
             });
             const point = await res.json();
             projections.push(point);

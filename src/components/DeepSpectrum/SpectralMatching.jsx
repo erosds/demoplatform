@@ -135,14 +135,27 @@ const MS2Chart = ({ peaks, height = 110 }) => {
   );
 };
 
+const formatLibName = (stem) =>
+  stem?.replace(/_/g, " ").replace(/\bfinal\b/gi, "").replace(/\s+/g, " ").trim() ?? "library";
+
 // ─── Main component ───────────────────────────────────────────────────────────
-const SpectralMatching = ({ selectedFile }) => {
+const SpectralMatching = ({ selectedFile, activeLib }) => {
   const [chrom, setChrom] = useState(null);
   const [selectedPeak, setSelectedPeak] = useState(null);
   const [matchResult, setMatchResult] = useState(null);
   const [searching, setSearching] = useState(false);
   const [searchEnabled, setSearchEnabled] = useState(false);
   const [error, setError] = useState(null);
+  const [libInfo, setLibInfo] = useState(null);
+
+  useEffect(() => {
+    setMatchResult(null); setSearchEnabled(false); setError(null); setLibInfo(null);
+    if (!activeLib) return;
+    fetch(`${BACKEND}/deep-spectrum/libraries`)
+      .then((r) => r.json())
+      .then((libs) => { const found = libs.find((l) => l.id === activeLib); if (found) setLibInfo(found); })
+      .catch(() => {});
+  }, [activeLib]);
 
   useEffect(() => {
     if (!selectedFile) return;
@@ -170,6 +183,7 @@ const SpectralMatching = ({ selectedFile }) => {
           precursor_mz: peak.precursor_mz,
           tolerance: 0.01,
           top_n: 10,
+          lib: activeLib ?? null,
         }),
       });
       if (!res.ok) {
@@ -336,7 +350,7 @@ const SpectralMatching = ({ selectedFile }) => {
                     <div className="flex-1 flex flex-col items-center justify-center gap-3">
                       <div className="flex items-center gap-1.5">
                         <span className="text-[10px] uppercase tracking-widest text-gray-700">
-                          ModifiedCosine · ECRFS library · 102 PMT spectra
+                          ModifiedCosine · {formatLibName(activeLib ?? "ECRFS library")}{libInfo ? ` · ${libInfo.n_spectra} spectra` : ""}
                         </span>
                         <div className="relative group">
                           <LuInfo className="w-3 h-3 text-gray-700 cursor-pointer hover:text-gray-400 transition-colors" />
@@ -359,7 +373,7 @@ const SpectralMatching = ({ selectedFile }) => {
                       <div className="flex items-center justify-between mb-3 flex-shrink-0">
                         <div className="flex items-center gap-1.5">
                           <span className="text-[10px] uppercase tracking-widest text-gray-600">
-                            ModifiedCosine · ECRFS library · 102 PMT spectra
+                            ModifiedCosine · {formatLibName(activeLib ?? "ECRFS library")}{libInfo ? ` · ${libInfo.n_spectra} spectra` : ""}
                           </span>
                           <div className="relative group">
                             <LuInfo className="w-3 h-3 text-gray-700 cursor-pointer hover:text-gray-400 transition-colors" />
@@ -373,7 +387,7 @@ const SpectralMatching = ({ selectedFile }) => {
                       {searching && (
                         <div className="flex-1 flex items-center justify-center gap-3 text-gray-600 text-xs">
                           <div className="w-3 h-3 rounded-full bg-amber-500/40 animate-ping" />
-                          Computing ModifiedCosine similarity against 102 ECRFS spectra…
+                          Computing ModifiedCosine similarity{libInfo ? ` against ${libInfo.n_spectra} spectra` : ""}…
                         </div>
                       )}
 
