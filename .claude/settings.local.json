@@ -15,7 +15,16 @@
       "Bash(\"C:/Users/edesimon/AppData/Local/Programs/Python/Python312/python.exe\":*)",
       "Bash(powershell:*)",
       "Bash(grep :8000 :*)",
-      "Bash(netstat:*)"
+      "Bash(netstat:*)",
+      "Bash(tail:*)",
+      "Bash(ollama list:*)",
+      "Bash(python3:*)",
+      "Bash(pip install:*)",
+      "Bash(wait:*)",
+      "Bash(git rm:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
