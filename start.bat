@@ -12,8 +12,13 @@ set VENV_PIP=%PROJECT_DIR%backend\.venv\Scripts\pip.exe
 :: ── [0/5] Pulizia processi residui ────────────────────────────────────────────
 echo [0/5] Pulizia processi residui...
 
+:: Kill uvicorn supervisors (python -m uvicorn ...)
 powershell -NoProfile -Command ^
   "Get-CimInstance Win32_Process | Where-Object { $_.Name -like 'python*' -and $_.CommandLine -like '*uvicorn*' } | ForEach-Object { Write-Host ('  stop PID ' + $_.ProcessId + ' (uvicorn)'); Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"
+
+:: Kill orphaned uvicorn multiprocessing workers (parent_pid= pattern)
+powershell -NoProfile -Command ^
+  "Get-CimInstance Win32_Process | Where-Object { $_.Name -like 'python*' -and $_.CommandLine -like '*multiprocessing*' -and $_.CommandLine -like '*spawn_main*' } | ForEach-Object { Write-Host ('  stop PID ' + $_.ProcessId + ' (uvicorn worker)'); Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"
 
 powershell -NoProfile -Command ^
   "Get-CimInstance Win32_Process | Where-Object { $_.Name -like 'node*' -and $_.CommandLine -like '*vite*' } | ForEach-Object { Write-Host ('  stop PID ' + $_.ProcessId + ' (vite)'); Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"
@@ -39,24 +44,20 @@ echo   Attenzione: porte ancora occupate, procedo comunque.
 echo   Porte liberate.
 echo.
 
-:: ── [1/5] Docker / Qdrant ─────────────────────────────────────────────────────
-echo [1/5] Qdrant (Docker)...
+:: ── [1/5] Qdrant (WSL) ────────────────────────────────────────────────────────
+echo [1/5] Qdrant — attesa su http://localhost:6333 (avvialo tu da WSL)...
 
-docker info >nul 2>&1
-if %errorlevel% neq 0 (
-    echo   ERRORE: Docker non risponde.
-    echo   Assicurati che Docker Desktop sia avviato, poi rilancia.
-    pause
-    exit /b 1
-)
-
-cd /d "%PROJECT_DIR%"
-docker compose up -d
-if %errorlevel% neq 0 (
-    echo   ERRORE: docker compose up fallito. Controlla il log sopra.
-    pause
-    exit /b 1
-)
+set _q=0
+:wait_qdrant
+curl -s http://localhost:6333/healthz >nul 2>&1
+if %errorlevel% equ 0 goto qdrant_ok
+set /a _q+=1
+if %_q% lss 30 ( timeout /t 2 /nobreak >nul & goto wait_qdrant )
+echo   ERRORE: Qdrant non raggiungibile su :6333 dopo 60s.
+echo   Avvia Docker da WSL con: docker compose up -d
+pause
+exit /b 1
+:qdrant_ok
 echo   Qdrant: http://localhost:6333
 echo.
 
@@ -71,6 +72,8 @@ if %errorlevel% neq 0 (
     pause
     exit /b 1
 )
+for /f "delims=" %%i in ('where ollama 2^>nul') do ( set "OLLAMA_EXE=%%i" & goto :ollama_path_ok )
+:ollama_path_ok
 
 :: Avvia il server solo se non e' gia' in ascolto
 curl -s http://localhost:11434/api/tags >nul 2>&1
@@ -93,11 +96,13 @@ if %errorlevel% neq 0 (
     echo   Server Ollama gia' in ascolto.
 )
 
-:: Pull llama3.2 se non presente
-ollama list 2>nul | findstr /I "llama3.2" >nul 2>&1
+:: Controllo modelli via API HTTP (piu' affidabile di "ollama list")
+curl -s "http://localhost:11434/api/tags" > "%TEMP%\ollama_tags.txt" 2>nul
+
+findstr /I "llama3.2" "%TEMP%\ollama_tags.txt" >nul 2>&1
 if %errorlevel% neq 0 (
     echo   Pulling llama3.2 (~2 GB - solo al primo avvio, attendere...
-    ollama pull llama3.2
+    "%OLLAMA_EXE%" pull llama3.2
     if %errorlevel% neq 0 (
         echo   ERRORE: pull llama3.2 fallito.
         pause
@@ -107,11 +112,10 @@ if %errorlevel% neq 0 (
     echo   llama3.2 presente.
 )
 
-:: Pull nomic-embed-text se non presente
-ollama list 2>nul | findstr /I "nomic-embed-text" >nul 2>&1
+findstr /I "nomic-embed-text" "%TEMP%\ollama_tags.txt" >nul 2>&1
 if %errorlevel% neq 0 (
     echo   Pulling nomic-embed-text (~300 MB - solo al primo avvio, attendere...
-    ollama pull nomic-embed-text
+    "%OLLAMA_EXE%" pull nomic-embed-text
     if %errorlevel% neq 0 (
         echo   ERRORE: pull nomic-embed-text fallito.
         pause
@@ -120,6 +124,7 @@ if %errorlevel% neq 0 (
 ) else (
     echo   nomic-embed-text presente.
 )
+del "%TEMP%\ollama_tags.txt" >nul 2>&1
 echo   Modelli OK.
 echo.
 

@@ -25,7 +25,14 @@
       "Bash(git checkout:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(head:*)"
+      "Bash(head:*)",
+      "Bash(backend/.venv/Scripts/python.exe:*)",
+      "Bash(../.venv/Scripts/python.exe:*)",
+      "Bash(.venv/Scripts/python.exe:*)",
+      "Bash(taskkill:*)",
+      "Bash(powershell.exe:*)",
+      "Bash(cmd.exe:*)",
+      "Bash(wmic path:*)"
     ]
   }
 }

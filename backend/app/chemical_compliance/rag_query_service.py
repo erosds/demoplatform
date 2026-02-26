@@ -60,16 +60,20 @@ STRICT RULES — follow exactly:
 
 # ── Qdrant helpers ─────────────────────────────────────────────────────────────
 
+_qdrant_client: "QdrantClient | None" = None
+
 def _get_qdrant() -> "QdrantClient":
+    global _qdrant_client
     if not _QDRANT_OK:
         raise RuntimeError("qdrant-client not installed")
-    return QdrantClient(url=QDRANT_URL)
+    if _qdrant_client is None:
+        _qdrant_client = QdrantClient(url=QDRANT_URL)
+    return _qdrant_client
 
 
 def _collection_exists() -> bool:
     try:
-        client = QdrantClient(url=QDRANT_URL)
-        info = client.get_collection(COLLECTION)
+        info = _get_qdrant().get_collection(COLLECTION)
         return (info.points_count or 0) > 0
     except Exception:
         return False
@@ -219,7 +223,7 @@ async def stream_query_pipeline(
     from app.chemical_compliance.audit_service import log_event
     from app.chemical_compliance.regulatory_mode import apply_regulatory_constraints
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
 
     # 1. Short-circuit: empty knowledge base
     has_docs = await loop.run_in_executor(None, _collection_exists)
