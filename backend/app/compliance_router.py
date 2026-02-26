@@ -88,6 +88,18 @@ async def delete_document(doc_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/documents/{doc_id}/preview")
+async def document_preview(doc_id: str):
+    """Return first N chunk texts for a document (for UI preview)."""
+    try:
+        loop = asyncio.get_running_loop()
+        from app.chemical_compliance import document_ingestion_service as dis
+        chunks = await loop.run_in_executor(None, lambda: dis.get_document_preview(doc_id))
+        return {"text": "\n\n---\n\n".join(chunks)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ── RAG query ─────────────────────────────────────────────────────────────────
 
 @router.post("/query", response_model=QueryResponse)
@@ -178,5 +190,16 @@ async def get_audit_log():
     try:
         from app.chemical_compliance import audit_service as aus
         return {"events": aus.get_log()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/audit-log")
+async def clear_audit_log():
+    """Clear the audit log."""
+    try:
+        from app.chemical_compliance import audit_service as aus
+        aus.clear_log()
+        return {"status": "cleared"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

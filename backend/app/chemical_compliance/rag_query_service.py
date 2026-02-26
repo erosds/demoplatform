@@ -26,29 +26,35 @@ QDRANT_URL = "http://localhost:6333"
 OLLAMA_URL = "http://localhost:11434"
 COLLECTION = "chemical_documents"
 LLM_MODEL = "llama3.2"
-MIN_SCORE_THRESHOLD = 0.30
+MIN_SCORE_THRESHOLD = 0.25
 MAX_HISTORY_TURNS = 3  # last N user+assistant pairs to include
+COUNTING_TOP_K = 20    # retrieve more chunks for counting/listing queries
+
+_COUNTING_RE = re.compile(
+    r'\b(how many|quante? volte|quanti|conta|count|occurrenc|elenca|list all|tutti|tutte)\b',
+    re.IGNORECASE,
+)
 
 _SYSTEM_PROMPT = """\
-You are ChemAssist, a compliance assistant for industrial QA/QC laboratories.
-You help analysts, chemists, and quality managers with SOPs, SDS sheets, \
-regulations, Certificates of Analysis, analytical methods, and any document \
-uploaded to the knowledge base (including aroma lists, ingredient tables, \
-specification sheets, etc.).
+You are ChemAssist, a document Q&A assistant for industrial laboratories.
+You answer questions about documents uploaded to the knowledge base \
+(product lists, ingredient tables, SDS sheets, SOPs, regulations, CoA, etc.).
 
-RULES:
-- Answer ONLY from the retrieved context provided below. Never invent facts.
-- Cite every factual claim inline as [filename / section].
-- The context may be in a different language than the query — translate/summarise as needed.
-- If the context contains partial information, report what you found rather than \
-saying you found nothing. Example: "The document lists entries such as X, Y, Z …"
-- If the answer is truly absent from the context: say \
-"I could not find this in the loaded documents." and suggest which document \
-type to upload (SOP, SDS, REGULATION, METHOD, COA, or OTHER).
-- Be concise and structured. Use bullet points when listing items.
-- Greetings only: introduce yourself in one sentence and list 3 things you can help with. \
-Do NOT treat content questions as greetings.
-- Never make GMP release decisions or batch disposition recommendations.
+STRICT RULES — follow exactly:
+1. NEVER open with a greeting, self-introduction, or "I am ChemAssist". \
+   Start your answer directly. The only exception: if the user sends a \
+   greeting with NO question (e.g. "Hi", "Ciao"), reply in one sentence only.
+2. Answer ONLY from the retrieved context below. Do not invent facts.
+3. Cite sources inline as [filename].
+4. The context may be in Italian — translate/summarise as needed.
+5. If the context contains partial information, report what you found. \
+   Example: "The document lists: X, Y, Z …"
+6. For counting questions ("how many times…", "quante volte…"), count the \
+   occurrences visible in the retrieved context and state the number. \
+   If the context is incomplete, say so explicitly.
+7. If the answer is absent: say "Not found in the loaded documents."
+8. Be concise. Use bullet points for lists.
+9. Never make GMP release decisions.
 """
 
 
@@ -226,10 +232,11 @@ async def stream_query_pipeline(
         yield {"type": "done"}
         return
 
-    # 2. Retrieve relevant chunks
+    # 2. Retrieve relevant chunks (more for counting/listing queries)
+    effective_top_k = COUNTING_TOP_K if _COUNTING_RE.search(query) else top_k
     try:
         chunks = await loop.run_in_executor(
-            None, lambda: retrieve(query, mode, document_types, top_k)
+            None, lambda: retrieve(query, mode, document_types, effective_top_k)
         )
     except Exception as e:
         yield {"type": "error", "message": str(e)}

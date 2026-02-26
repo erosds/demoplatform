@@ -1,34 +1,32 @@
 @echo off
-setlocal
+setlocal EnableDelayedExpansion
+chcp 65001 >nul
 
 echo === Avvio DemoPlatform ===
+echo.
 
 set PROJECT_DIR=%~dp0
 set VENV_PYTHON=%PROJECT_DIR%backend\.venv\Scripts\python.exe
+set VENV_PIP=%PROJECT_DIR%backend\.venv\Scripts\pip.exe
 
-:: ── Pulizia processi ──────────────────────────────────────────
-echo [0/2] Pulizia processi residui...
+:: ── [0/5] Pulizia processi residui ────────────────────────────────────────────
+echo [0/5] Pulizia processi residui...
 
-:: Kill TUTTI i python.exe con "uvicorn" nella command line
-:: (copre sia il reloader che il worker di --reload)
 powershell -NoProfile -Command ^
   "Get-CimInstance Win32_Process | Where-Object { $_.Name -like 'python*' -and $_.CommandLine -like '*uvicorn*' } | ForEach-Object { Write-Host ('  stop PID ' + $_.ProcessId + ' (uvicorn)'); Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"
 
-:: Kill TUTTI i node.exe con "vite" nella command line (frontend)
 powershell -NoProfile -Command ^
   "Get-CimInstance Win32_Process | Where-Object { $_.Name -like 'node*' -and $_.CommandLine -like '*vite*' } | ForEach-Object { Write-Host ('  stop PID ' + $_.ProcessId + ' (vite)'); Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"
 
-:: Fallback: killa per porta nel caso ci fosse qualcosa rimasto
 for /f "tokens=5" %%a in ('netstat -aon 2^>nul ^| findstr ":8000 " ^| findstr "LISTENING"') do (
-    echo   stop PID %%a ^(porta 8000 fallback^)
+    echo   stop PID %%a (porta 8000)
     taskkill /PID %%a /F /T >nul 2>&1
 )
 for /f "tokens=5" %%a in ('netstat -aon 2^>nul ^| findstr ":5173 " ^| findstr "LISTENING"') do (
-    echo   stop PID %%a ^(porta 5173 fallback^)
+    echo   stop PID %%a (porta 5173)
     taskkill /PID %%a /F /T >nul 2>&1
 )
 
-:: Attesa rilascio porte (max 10s)
 set _w=0
 :wait_ports
 powershell -NoProfile -Command ^
@@ -39,12 +37,119 @@ if %_w% lss 10 ( timeout /t 1 /nobreak >nul & goto wait_ports )
 echo   Attenzione: porte ancora occupate, procedo comunque.
 :ports_ok
 echo   Porte liberate.
+echo.
 
-:: ── Backend (FastAPI nel venv) ────────────────────────────────
-echo [1/2] Avvio backend ^(.venv^)...
+:: ── [1/5] Docker / Qdrant ─────────────────────────────────────────────────────
+echo [1/5] Qdrant (Docker)...
+
+docker info >nul 2>&1
+if %errorlevel% neq 0 (
+    echo   ERRORE: Docker non risponde.
+    echo   Assicurati che Docker Desktop sia avviato, poi rilancia.
+    pause
+    exit /b 1
+)
+
+cd /d "%PROJECT_DIR%"
+docker compose up -d
+if %errorlevel% neq 0 (
+    echo   ERRORE: docker compose up fallito. Controlla il log sopra.
+    pause
+    exit /b 1
+)
+echo   Qdrant: http://localhost:6333
+echo.
+
+:: ── [2/5] Ollama — server + modelli ──────────────────────────────────────────
+echo [2/5] Ollama...
+
+where ollama >nul 2>&1
+if %errorlevel% neq 0 (
+    echo   ERRORE: ollama non trovato in PATH.
+    echo   Scarica e installa da: https://ollama.com/download/windows
+    echo   Poi riavvia questo script.
+    pause
+    exit /b 1
+)
+
+:: Avvia il server solo se non e' gia' in ascolto
+curl -s http://localhost:11434/api/tags >nul 2>&1
+if %errorlevel% neq 0 (
+    echo   Avvio server Ollama...
+    start /B "" ollama serve
+    set _o=0
+    :wait_ollama
+    timeout /t 2 /nobreak >nul
+    curl -s http://localhost:11434/api/tags >nul 2>&1
+    if %errorlevel% neq 0 (
+        set /a _o+=1
+        if !_o! lss 15 goto wait_ollama
+        echo   ERRORE: Ollama non risponde dopo 30s.
+        pause
+        exit /b 1
+    )
+    echo   Server Ollama avviato.
+) else (
+    echo   Server Ollama gia' in ascolto.
+)
+
+:: Pull llama3.2 se non presente
+ollama list 2>nul | findstr /I "llama3.2" >nul 2>&1
+if %errorlevel% neq 0 (
+    echo   Pulling llama3.2 (~2 GB - solo al primo avvio, attendere...
+    ollama pull llama3.2
+    if %errorlevel% neq 0 (
+        echo   ERRORE: pull llama3.2 fallito.
+        pause
+        exit /b 1
+    )
+) else (
+    echo   llama3.2 presente.
+)
+
+:: Pull nomic-embed-text se non presente
+ollama list 2>nul | findstr /I "nomic-embed-text" >nul 2>&1
+if %errorlevel% neq 0 (
+    echo   Pulling nomic-embed-text (~300 MB - solo al primo avvio, attendere...
+    ollama pull nomic-embed-text
+    if %errorlevel% neq 0 (
+        echo   ERRORE: pull nomic-embed-text fallito.
+        pause
+        exit /b 1
+    )
+) else (
+    echo   nomic-embed-text presente.
+)
+echo   Modelli OK.
+echo.
+
+:: ── [3/5] Python venv + dipendenze ───────────────────────────────────────────
+echo [3/5] Dipendenze backend...
+
+if not exist "%VENV_PYTHON%" (
+    echo   Creazione virtualenv...
+    python -m venv "%PROJECT_DIR%backend\.venv"
+    if %errorlevel% neq 0 (
+        echo   ERRORE: creazione venv fallita. Verifica che Python 3.10+ sia installato.
+        pause
+        exit /b 1
+    )
+)
+
+echo   Installazione/aggiornamento pacchetti (solo modifiche)...
+"%VENV_PIP%" install -r "%PROJECT_DIR%backend\requirements.txt" -q --no-warn-script-location
+if %errorlevel% neq 0 (
+    echo   ERRORE: pip install fallito. Controlla requirements.txt.
+    pause
+    exit /b 1
+)
+echo   Dipendenze OK.
+echo.
+
+:: ── [4/5] Backend (FastAPI) ───────────────────────────────────────────────────
+echo [4/5] Avvio backend...
 start "Backend - DemoPlatform" cmd /k "cd /d %PROJECT_DIR%backend && %VENV_PYTHON% -m uvicorn app.main:app --reload --port 8000"
 
-:: Health-check backend (max 20s)
 set _t=0
 :wait_backend
 timeout /t 1 /nobreak >nul
@@ -52,16 +157,21 @@ curl -s -o nul http://localhost:8000/ 2>nul
 if %errorlevel% equ 0 ( echo   Backend pronto. & goto start_frontend )
 set /a _t+=1
 if %_t% lss 20 goto wait_backend
-echo   Backend non risponde in 20s — controlla la finestra Backend.
+echo   Backend non risponde dopo 20s — controlla la finestra Backend.
 
-:: ── Frontend (React/Vite) ─────────────────────────────────────
+:: ── [5/5] Frontend (React/Vite) ──────────────────────────────────────────────
 :start_frontend
-echo [2/2] Avvio frontend...
+echo.
+echo [5/5] Avvio frontend...
 start "Frontend - DemoPlatform" cmd /k "cd /d %PROJECT_DIR% && npm start"
 
 echo.
-echo   Frontend : http://localhost:5173
-echo   Backend  : http://localhost:8000
+echo  ╔════════════════════════════════════╗
+echo  ║  DemoPlatform avviato              ║
+echo  ║  Frontend : http://localhost:5173  ║
+echo  ║  Backend  : http://localhost:8000  ║
+echo  ║  Qdrant   : http://localhost:6333  ║
+echo  ╚════════════════════════════════════╝
 echo.
 
 endlocal

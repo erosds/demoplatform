@@ -58,12 +58,23 @@ const MatrixDropdown = ({ value, onChange }) => {
 };
 
 // ── Preview dialog ─────────────────────────────────────────────────────────────
-const PreviewDialog = ({ doc, content, onClose }) => {
+const PreviewDialog = ({ doc, onClose }) => {
+  const [content, setContent] = useState(null);
+  const [loadingPreview, setLoadingPreview] = useState(true);
+
   useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  useEffect(() => {
+    setLoadingPreview(true);
+    fetch(`${BACKEND}/compliance/documents/${doc.doc_id}/preview`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { setContent(data?.text || null); setLoadingPreview(false); })
+      .catch(() => { setContent(null); setLoadingPreview(false); });
+  }, [doc.doc_id]);
 
   const typeColor = {
     SOP: "text-teal-400",
@@ -115,13 +126,17 @@ const PreviewDialog = ({ doc, content, onClose }) => {
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-5 py-4 no-scrollbar">
-          {content ? (
+          {loadingPreview ? (
+            <div className="text-xs text-gray-600 text-center mt-10 animate-pulse">
+              Loading preview…
+            </div>
+          ) : content ? (
             <pre className="text-[11px] text-gray-400 whitespace-pre-wrap leading-relaxed font-mono">
               {content}
             </pre>
           ) : (
             <div className="text-xs text-gray-600 text-center mt-10">
-              Full text not available — document was ingested in a previous session.
+              Preview not available for this document.
             </div>
           )}
         </div>
@@ -141,8 +156,6 @@ const DocumentUpload = ({ onDocsChange }) => {
   const [uploadProgress, setUploadProgress] = useState({});
   const [previewDoc, setPreviewDoc] = useState(null);
   const fileInputRef = useRef(null);
-  // Cache of { [doc_id]: text } for files uploaded this session
-  const docContentsRef = useRef({});
 
   const fetchDocs = useCallback(async () => {
     try {
@@ -203,11 +216,6 @@ const DocumentUpload = ({ onDocsChange }) => {
           }
 
           const result = await resp.json();
-          // Cache content for preview (only plain text is human-readable)
-          if (!file.name.match(/\.(pdf|docx)$/i)) {
-            docContentsRef.current[result.doc_id] = rawContent;
-          }
-
           setUploadProgress((p) => ({
             ...p,
             [file.name]: `done (${result.chunks_created} chunks)`,
@@ -242,7 +250,6 @@ const DocumentUpload = ({ onDocsChange }) => {
     e.stopPropagation();
     try {
       await fetch(`${BACKEND}/compliance/documents/${docId}`, { method: "DELETE" });
-      delete docContentsRef.current[docId];
       await fetchDocs();
     } catch (e) {
       setError(e.message);
@@ -415,7 +422,6 @@ const DocumentUpload = ({ onDocsChange }) => {
       {previewDoc && (
         <PreviewDialog
           doc={previewDoc}
-          content={docContentsRef.current[previewDoc.doc_id] || null}
           onClose={() => setPreviewDoc(null)}
         />
       )}
